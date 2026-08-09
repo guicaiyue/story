@@ -303,6 +303,7 @@
         settings: loadSettings(),
         playing: false,
         paused: false,
+        starting: false,   // 朗读加载阶段（start 后、第一段真正播放前）——用于防重 + 按钮转圈
         stopRequested: false,
         segments: [],
         currentIndex: 0,
@@ -376,13 +377,18 @@
                 playSegment(idx + 1);
             };
             await state.currentAudio.play();
+            state.starting = false;   // 第一段真正开始朗读，退出加载阶段
             state.playing = true;
             state.paused = false;
             setButtonState('playing');
         } catch (e) {
             console.error('Edge-TTS 播放失败:', e);
             if (!state.stopRequested) {
-                showToast && showToast('语音合成失败：' + e.message, 'error');
+                if (e && (e.name === 'NotAllowedError' || /user didn't interact/.test(e.message || ''))) {
+                    showToast && showToast('请再次点击播放按钮开始朗读', 'warning');
+                } else {
+                    showToast && showToast('语音合成失败：' + e.message, 'error');
+                }
             }
             finishPlayback();
         }
@@ -398,6 +404,20 @@
     function highlightClear() {
         const content = document.getElementById('storyContent');
         if (content) content.querySelectorAll('p.tts-reading').forEach(p => p.classList.remove('tts-reading'));
+    }
+    // 段落状态图标（CSS 伪元素，不占 DOM 空间）：'' 无 / 'loading' 转圈 / 'ready' 已加载
+    function setParaStatus(idx, status) {
+        const content = document.getElementById('storyContent');
+        if (!content) return;
+        const ps = content.querySelectorAll('p');
+        if (idx < 0) {
+            ps.forEach(p => p.classList.remove('tts-loading', 'tts-ready'));
+            return;
+        }
+        const p = ps[idx];
+        if (!p) return;
+        p.classList.toggle('tts-loading', status === 'loading');
+        p.classList.toggle('tts-ready', status === 'ready');
     }
 
     // ---------- 预合成队列管理 ----------
@@ -415,10 +435,12 @@
         const to = Math.min(from + 2, state.segments.length);
         for (let i = from; i < to; i++) {
             if (state.readyQueue.some(q => q.idx === i)) continue;
+            setParaStatus(i, 'loading');
             synthForIndex(i).then(b => {
                 if (b && !state.stopRequested) {
                     const url = URL.createObjectURL(b);
                     state.readyQueue.push({ idx: i, audio: new Audio(url), blobUrl: url });
+                    setParaStatus(i, 'ready');
                 }
             }).catch(() => { /* 预取失败忽略，播放时再取 */ });
         }
@@ -438,11 +460,13 @@
         if (state.segments.length === 0) return;
         const n = Math.min(2, state.segments.length); // 前 1-2 段
         for (let i = 0; i < n; i++) {
+            setParaStatus(i, 'loading');
             try {
                 const b = await synthForIndex(i);
                 if (!b) break;
                 const url = URL.createObjectURL(b);
                 state.readyQueue.push({ idx: i, audio: new Audio(url), blobUrl: url });
+                setParaStatus(i, 'ready');
             } catch (e) { break; /* 预初始化失败则停止，播放时再合成 */ }
         }
     }
@@ -450,8 +474,10 @@
     function finishPlayback() {
         cleanupAudio();
         highlightClear();
+        setParaStatus(-1, '');
         state.playing = false;
         state.paused = false;
+        state.starting = false;
         setButtonState('stopped');
     }
 
@@ -468,16 +494,23 @@
 
     // ---------- 对外 API ----------
     const EdgeTTS = {
-        start(text) {
+        start(text, callbacks) {
+            // 防重：已在播放或加载中，忽略重复点击（避免声音重叠）
+            if (state.playing || state.starting) return;
             state.stopRequested = false;
             state.paused = false;
+            state.starting = true;
+            state.onLoading = callbacks && callbacks.onLoading ? callbacks.onLoading : null;
             state.segments = getSegments(text || '');
             if (state.segments.length === 0) {
+                state.starting = false;
                 showToast && showToast('没有可朗读的内容', 'warning');
                 return;
             }
-            cleanupAudio();
             state.currentIndex = 0;
+            // 进入朗读加载阶段（按钮转圈），保留 prepare 预合成好的 readyQueue
+            setButtonState('loading');
+            if (state.onLoading) state.onLoading();
             playSegment(0);
         },
         pause() {
@@ -501,8 +534,10 @@
             state.stopRequested = true;
             cleanupAudio();
             highlightClear();
+            setParaStatus(-1, '');
             state.playing = false;
             state.paused = false;
+            state.starting = false;
             state.segments = [];
             setButtonState('stopped');
         },

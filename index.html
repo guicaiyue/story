@@ -57,6 +57,29 @@
         .edge-tts-switch input:checked+.edge-tts-slider:before{transform:translateX(20px)}
         /* 朗读中当前段落文字变绿 */
         .article-content p.tts-reading{color:#2E7D32!important;font-weight:600}
+        /* 朗读段落状态图标：tts-loading 转圈 / tts-ready 已加载（CSS 伪元素，不占 DOM 空间） */
+        #storyContent p.tts-loading::before,
+        #storyContent p.tts-ready::before{
+            content:'';
+            display:inline-block;
+            width:14px;height:14px;
+            margin-right:6px;
+            vertical-align:-1px
+        }
+        #storyContent p.tts-loading::before{
+            border:2px solid rgba(0,0,0,.15);
+            border-top-color:#2E7D32;
+            border-radius:50%;
+            animation:ttsSpin .8s linear infinite
+        }
+        #storyContent p.tts-ready::before{
+            content:'✓';
+            font-size:13px;
+            line-height:14px;
+            color:#2E7D32;
+            text-align:center
+        }
+        @keyframes ttsSpin{to{transform:rotate(360deg)}}
         #ttsSettingsButton{position:relative;color:inherit}
         #ttsSettingsButton:hover{transform:rotate(45deg);transition:transform .3s ease}
     </style>

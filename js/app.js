@@ -1348,7 +1348,7 @@ function updateCategoryLimitWarning() {
 }
 
 // 显示轻提示 (Toast)
-function showToast(message, type = 'success') {
+function showToast(message, type = 'success', position = 'bottom') {
     // 检查是否已存在toast元素，如果存在则移除
     const existingToast = document.querySelector('.toast-message');
     if (existingToast) {
@@ -1357,7 +1357,7 @@ function showToast(message, type = 'success') {
 
     // 创建新的toast元素
     const toast = document.createElement('div');
-    toast.className = `toast-message ${type}`;
+    toast.className = `toast-message ${type} ${position}`;
 
     // 设置图标
     let icon = 'check-circle';
@@ -1466,6 +1466,7 @@ function getRandomInt() {
 let ttsState = {
     isPlaying: false,
     isPaused: false,
+    isLoading: false,
     currentText: '',
     currentPosition: 0
 };
@@ -1481,6 +1482,10 @@ function ttsGetText() {
 
 // TTS播放/暂停切换
 function ttsPlay() {
+    if (ttsState.isLoading) {
+        // 朗读加载阶段（语音还在准备），忽略重复点击，防声音重叠
+        return;
+    }
     if (ttsState.isPlaying) {
         // 当前正在播放，暂停
         ttsPause();
@@ -1506,7 +1511,10 @@ function ttsStart() {
             return;
         }
     }
-    EdgeTTS.start(ttsState.currentText);
+    // 顶部绿色提示：仅真正进入朗读加载阶段时显示（语音准备中）
+    EdgeTTS.start(ttsState.currentText, {
+        onLoading: () => showToast('朗读准备中，请稍候…', 'success', 'top')
+    });
 }
 
 // 暂停TTS播放
@@ -1533,27 +1541,45 @@ function ttsReplay() {
     }, 100);
 }
 
-// 更新TTS按钮状态
+// 更新TTS按钮状态（同步 ttsState 供防重判断）
 function updateTTSButton(state) {
     const playButton = elements.ttsPlayButton;
     const playIcon = playButton.querySelector('.play-icon');
 
     switch (state) {
+        case 'loading':
+            // 朗读加载阶段：按钮转圈
+            playIcon.src = '/img/loading.svg';
+            playIcon.alt = '朗读准备中';
+            playButton.title = '朗读准备中';
+            ttsState.isPlaying = false;
+            ttsState.isPaused = false;
+            ttsState.isLoading = true;
+            break;
         case 'playing':
             playIcon.src = '/img/playstop.png';
             playIcon.alt = '暂停朗读';
             playButton.title = '暂停朗读';
+            ttsState.isPlaying = true;
+            ttsState.isPaused = false;
+            ttsState.isLoading = false;
             break;
         case 'paused':
             playIcon.src = '/img/play.png';
             playIcon.alt = '继续朗读';
             playButton.title = '继续朗读';
+            ttsState.isPlaying = false;
+            ttsState.isPaused = true;
+            ttsState.isLoading = false;
             break;
         case 'stopped':
         default:
             playIcon.src = '/img/play.png';
             playIcon.alt = '开始朗读';
             playButton.title = '开始朗读';
+            ttsState.isPlaying = false;
+            ttsState.isPaused = false;
+            ttsState.isLoading = false;
             break;
     }
 }

@@ -2423,6 +2423,11 @@ body.simple-mode .card-category {
     backdrop-filter: blur(4px);
 }
 
+.toast-message.top {
+    top: 20px;
+    bottom: auto;
+}
+
 .toast-message.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
