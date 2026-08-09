@@ -429,7 +429,7 @@
             btn.id = 'ttsSettingsButton';
             btn.className = 'tts-button tts-settings-button';
             btn.title = '语音设置';
-            btn.innerHTML = '<i class="fas fa-cog" style="font-size:18px;color:inherit"></i>';
+            btn.innerHTML = '<img src="/img/gear.png" alt="语音设置" class="settings-icon">';
             controls.appendChild(btn);
         }
         if (!btn._edgeTtsBound) {

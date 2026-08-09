@@ -3110,20 +3110,30 @@ header {
 }
 
 .tts-button{
-    /*position: fixed;*/
-    width: 10%;
-    height: 10%;
-    left: 150px;
-    top: 170px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     cursor: pointer;
     border: none; /* 去除边框 */
     outline: none; /* 去除点击时的轮廓 */
-    background-color: transparent; /* 去除背景色 */
+    background-color: #EB422F; /* 与 play/replay 红色图标一致的圆形底 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: transform .15s ease, filter .15s ease;
+}
+
+.tts-button:hover{
+    transform: scale(1.08);
+    filter: brightness(1.05);
 }
 
 .tts-button img{
     width: 100%;
     height: 100%;
+    border-radius: 50%;
 }
 
