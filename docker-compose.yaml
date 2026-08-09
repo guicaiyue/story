@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile
     container_name: story
     restart: unless-stopped
-    ports:
-      - "18080:80"
     environment:
       TZ: Asia/Shanghai
       # 二开：如需连接 Supabase 数据，设置以下两个变量（匿名 key 即可）
@@ -19,3 +17,14 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.story.rule=Host(`story.xirizhi.cn`)
+      - traefik.http.routers.story.entrypoints=web
+      - traefik.http.services.story.loadbalancer.server.port=80
+
+networks:
+  traefik-public:
+    external: true
