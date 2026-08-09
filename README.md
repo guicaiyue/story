@@ -18,3 +18,37 @@
 <img width="1910" height="925" alt="99f460b294447ddc46c6007544aac085" src="https://github.com/user-attachments/assets/3f048619-c0b7-4230-b10c-14375365a6f5" />
 <img width="1910" height="925" alt="0a4de6175a2d8ba9977b25a87ed821ca" src="https://github.com/user-attachments/assets/bbca5961-b580-4e9c-b22e-b300ee27b176" />
 <img width="1910" height="925" alt="f6c8d2fa1de24b389dd877513e2b740e" src="https://github.com/user-attachments/assets/76911536-a632-4503-80e1-9bdb27c04bca" />
+
+---
+
+## Docker 部署
+
+本项目为纯静态站点（Nginx 托管），已内置 Docker 化与 CI 自动构建。
+
+### 构建镜像
+
+```bash
+docker build -t xirizhi/story:latest .
+# 或使用仓库内 compose
+docker compose up -d --build
+# 本地访问 http://127.0.0.1:18080
+```
+
+### 环境变量（可选）
+
+| 变量 | 说明 |
+|------|------|
+| `SUPABASE_URL` | Supabase 项目地址，如 `https://<project-ref>.supabase.co` |
+| `SUPABASE_KEY` | Supabase 匿名公钥 |
+
+仓库内 `js/supabase-client.js` 默认 `supabaseUrl/supabaseKey` 为空；容器启动时若设置了以上两个变量，会自动注入。
+
+### CI 自动发布
+
+推送到 `main` 分支后，GitHub Actions 自动构建镜像并推送 Docker Hub：
+- 镜像：`xirizhi/story:latest`（同时打 `github.sha` 标签）
+- 仓库 Secrets 需配置：`DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN`
+
+### 生产部署（Traefik + Watchtower + Homepage）
+
+在宿主机 docker 目录创建 compose（示例）：`/vol1/1000/docker/story/docker-compose.yaml`，拉取镜像并配置 Traefik 域名、Watchtower 自动更新与 Homepage 入口标签（详见部署机 SOP）。

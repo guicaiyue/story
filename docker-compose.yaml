@@ -1,0 +1,21 @@
+services:
+  story:
+    image: ${STORY_IMAGE:-xirizhi/story:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: story
+    restart: unless-stopped
+    ports:
+      - "18080:80"
+    environment:
+      TZ: Asia/Shanghai
+      # 二开：如需连接 Supabase 数据，设置以下两个变量（匿名 key 即可）
+      # SUPABASE_URL: https://<project-ref>.supabase.co
+      # SUPABASE_KEY: <anon-public-key>
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
