@@ -119,6 +119,16 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.ttsPlayButton.addEventListener('click',ttsPlay);
     elements.ttsReplayButton.addEventListener('click',ttsReplay);
 
+    // 段落语音图标：点击单段播放（事件委托，storyContent 常驻）
+    elements.storyContent.addEventListener('click', (e) => {
+        const icon = e.target.closest('.tts-para-icon');
+        if (!icon) return;
+        const p = icon.closest('p');
+        if (!p || !window.EdgeTTS || typeof window.EdgeTTS.playParagraph !== 'function') return;
+        const idx = Array.prototype.indexOf.call(elements.storyContent.children, p);
+        if (idx >= 0) window.EdgeTTS.playParagraph(idx);
+    });
+
     // 点击设置弹窗背景关闭弹窗
     elements.categorySettingsModal.addEventListener('click', (e) => {
         if (e.target === elements.categorySettingsModal) {
@@ -927,7 +937,12 @@ async function loadStoryDetail(story) {
             paragraphs.forEach((paragraph, index) => {
                 setTimeout(() => {
                     const p = document.createElement('p');
-                    p.textContent = paragraph;
+                    // 段落语音状态图标（span 占位，图标本体 CSS 伪元素；absolute 定位不推移文本）
+                    const icon = document.createElement('span');
+                    icon.className = 'tts-para-icon tts-idle';
+                    icon.title = '朗读本段';
+                    p.appendChild(icon);
+                    p.appendChild(document.createTextNode(paragraph));
                     p.style.opacity = '0';
                     p.style.transform = 'translateY(10px)';
                     elements.storyContent.appendChild(p);

@@ -57,30 +57,46 @@
         .edge-tts-switch input:checked+.edge-tts-slider:before{transform:translateX(20px)}
         /* 朗读中当前段落文字变绿 */
         .article-content p.tts-reading{color:#2E7D32!important;font-weight:600}
-        /* 朗读段落状态图标：tts-loading 转圈 / tts-ready 已加载（CSS 伪元素，不占 DOM 空间） */
-        #storyContent p.tts-loading::before,
-        #storyContent p.tts-ready::before{
-            content:'';
-            display:inline-block;
-            width:14px;height:14px;
-            margin-right:6px;
-            vertical-align:-1px
-        }
-        #storyContent p.tts-loading::before{
-            border:2px solid rgba(0,0,0,.15);
-            border-top-color:#2E7D32;
-            border-radius:50%;
-            animation:ttsSpin .8s linear infinite
-        }
-        #storyContent p.tts-ready::before{
-            content:'✓';
-            font-size:13px;
-            line-height:14px;
-            color:#2E7D32;
-            text-align:center
-        }
+        /* 朗读段落状态图标（真实 span 承载点击，图标本体用 CSS 伪元素绘制；absolute 定位不推移文本）
+           四态：tts-idle 下载 / tts-loading 加载中 / tts-ready 播放 / tts-reading 朗读中 */
+        #storyContent p{position:relative}
+        #storyContent p .tts-para-icon{position:absolute;left:-24px;top:0.42em;width:16px;height:16px;cursor:pointer;z-index:2;user-select:none}
+        #storyContent p .tts-para-icon:hover{opacity:.8}
+        /* 下载（未加载）：灰色向下箭头（竖线 + 三角） */
+        #storyContent p .tts-para-icon.tts-idle::before{content:'';position:absolute;left:6px;top:2px;width:2px;height:7px;background:#9e9e9e;border-radius:1px}
+        #storyContent p .tts-para-icon.tts-idle::after{content:'';position:absolute;left:4px;top:7px;border:4px solid transparent;border-top-color:#9e9e9e}
+        /* 加载中：绿色转圈 */
+        #storyContent p .tts-para-icon.tts-loading::before{content:'';position:absolute;inset:0;border:2px solid rgba(0,0,0,.15);border-top-color:#2E7D32;border-radius:50%;animation:ttsSpin .8s linear infinite}
+        #storyContent p .tts-para-icon.tts-loading::after{content:none}
+        /* 播放（已加载可播）：绿色实心右三角 */
+        #storyContent p .tts-para-icon.tts-ready::before{content:'';position:absolute;left:4px;top:2px;border:6px solid transparent;border-left:8px solid #2E7D32}
+        #storyContent p .tts-para-icon.tts-ready::after{content:none}
+        /* 朗读中：绿色波形（3 个跳动竖条） */
+        #storyContent p .tts-para-icon.tts-reading::before{content:'';position:absolute;inset:0;background:
+            linear-gradient(#2E7D32,#2E7D32) 1px 6px/2px 6px no-repeat,
+            linear-gradient(#2E7D32,#2E7D32) 6px 2px/2px 14px no-repeat,
+            linear-gradient(#2E7D32,#2E7D32) 11px 6px/2px 6px no-repeat;
+            animation:ttsWave 1s ease-in-out infinite}
+        @keyframes ttsWave{0%,100%{opacity:.35}50%{opacity:1}}
         @keyframes ttsSpin{to{transform:rotate(360deg)}}
-        #ttsSettingsButton{position:relative;color:inherit}
+        /* 设置弹窗：两列并排 / 按钮行 / 试听文本 */
+        .edge-tts-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .edge-tts-grid2 .edge-tts-field{margin-bottom:0}
+        .edge-tts-textarea{width:100%;min-height:72px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#333;background:#fff;outline:none;resize:vertical;line-height:1.6;box-sizing:border-box}
+        .edge-tts-textarea:focus{border-color:#4A90E2}
+        .edge-tts-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+        .edge-tts-btn{padding:10px 0;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
+        .edge-tts-btn:hover{opacity:.85}
+        .edge-tts-btn-secondary{background:#f0f2f5;color:#555}
+        .edge-tts-btn-primary{background:#4A90E2;color:#fff}
+        /* 设置弹窗：并排布局 + 试听文本 */
+        .edge-tts-row{display:flex;gap:10px}
+        .edge-tts-row .edge-tts-field{flex:1;min-width:0}
+        .edge-tts-row .edge-tts-field select{width:100%}
+        .edge-tts-btn-row{margin-top:2px}
+        .edge-tts-btn{flex:1;padding:10px 0;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
+        #edgeTtsPreviewText{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;min-height:60px;margin-top:2px}
+        #edgeTtsSettingsButton{position:relative;color:inherit}
         #ttsSettingsButton:hover{transform:rotate(45deg);transition:transform .3s ease}
     </style>
     <meta name="application-name" content="小故事铺">
@@ -89,39 +105,12 @@
 
     <link rel="stylesheet" href="/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260810">
+    <link rel="stylesheet" href="/css/styles.css?v=20260812">
     <link rel="stylesheet" href="/live2d/css/live2d.css"/>
 
     <script src="/js/supabase.js"></script>
     <script src="/js/jquery.min.js"></script>
     <script defer src="https://cloud.umami.is/script.js" data-website-id="9ff3dec1-fc8a-41cd-8de1-84e40212d86b"></script>
-
-    <!-- 移动端检测脚本 -->
-    <script>
-        // 检测移动端设备并跳转
-        function detectMobileAndRedirect() {
-            // 检测屏幕宽度
-            const screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-
-            // 检测用户代理字符串
-            const userAgent = navigator.userAgent.toLowerCase();
-            const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-
-            // 如果屏幕宽度小于768px或检测到移动设备，则跳转到app.html
-            if (screenWidth <= 768 || isMobileDevice) {
-                // 避免无限重定向，检查当前页面是否已经是app.html
-                if (!window.location.pathname.includes('app.html')) {
-                    window.location.href = 'app.html';
-                }
-            }
-        }
-
-        // 页面加载时检测
-        detectMobileAndRedirect();
-
-        // 监听窗口大小变化
-        window.addEventListener('resize', detectMobileAndRedirect);
-    </script>
 </head>
 <body>
     <!-- SEO隐藏内容区域 - 供搜索引擎抓取 -->
@@ -317,10 +306,6 @@
     </div>
     </main>
 
-    <a href="https://support.qq.com/product/774893" target="_blank" rel="noopener noreferrer" class="feedback-fab" id="feedbackFab" title="意见反馈" aria-label="意见反馈">
-        <img src="/img/opinion.png" alt="意见反馈">
-    </a>
-
     <!-- 结构化数据标记 -->
     <script type="application/ld+json">
         {
@@ -397,8 +382,8 @@
     </script>
 
     <script src="/js/supabase-client.js"></script>
-    <script src="/js/app.js?v=20260811"></script>
-    <script src="/js/edge-tts.js?v=20260811"></script>
+    <script src="/js/app.js?v=20260812"></script>
+    <script src="/js/edge-tts.js?v=20260812"></script>
     <script type="text/javascript" src="/live2d/js/live2d.js"></script>
     <script type="text/javascript" src="/live2d/js/message.js"></script>
     <script type="text/javascript">

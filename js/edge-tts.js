@@ -9,57 +9,57 @@
     // ---------- 中英文语音列表（全量） ----------
     // 微软 Edge-TTS 支持的中文/英文声音全集（2026-08）
     const ZH_VOICES = [
-        { id: 'zh-CN-XiaoxiaoNeural', label: '晓晓（女·温暖）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaoyiNeural', label: '晓伊（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunjianNeural', label: '云健（男）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunxiNeural', label: '云希（男）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunxiaNeural', label: '云夏（男·少年）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunyangNeural', label: '云扬（男）', lang: 'zh-CN' },
-        { id: 'zh-CN-liaoning-XiaobeiNeural', label: '小北（女·东北话）', lang: 'zh-CN' },
-        { id: 'zh-CN-shaanxi-XiaoniNeural', label: '晓妮（女·陕西话）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaochenNeural', label: '晓辰（女·儿童）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaohanNeural', label: '晓涵（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaomengNeural', label: '晓梦（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaomoNeural', label: '晓墨（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaoqiuNeural', label: '晓秋（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaoruiNeural', label: '晓睿（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaoshuangNeural', label: '晓双（女·儿童）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaoxuanNeural', label: '晓萱（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaoyanNeural', label: '晓颜（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaoyouNeural', label: '晓悠（女·儿童）', lang: 'zh-CN' },
-        { id: 'zh-CN-XiaozhenNeural', label: '晓甄（女）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunfengNeural', label: '云枫（男）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunhaoNeural', label: '云皓（男）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunjieNeural', label: '云杰（男）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunlongNeural', label: '云龙（男）', lang: 'zh-CN' },
-        { id: 'zh-CN-YunzeNeural', label: '云泽（男）', lang: 'zh-CN' }
+        { id: 'zh-CN-XiaoxiaoNeural', label: '晓晓（女·温暖亲切）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaoyiNeural', label: '晓伊（女·甜美可爱）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunjianNeural', label: '云健（男·沉稳有力）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunxiNeural', label: '云希（男·阳光活力）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunxiaNeural', label: '云夏（男·清朗少年）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunyangNeural', label: '云扬（男·大气专业）', lang: 'zh-CN' },
+        { id: 'zh-CN-liaoning-XiaobeiNeural', label: '小北（女·东北话爽朗）', lang: 'zh-CN' },
+        { id: 'zh-CN-shaanxi-XiaoniNeural', label: '晓妮（女·陕西话亲切）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaochenNeural', label: '晓辰（女·童声可爱）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaohanNeural', label: '晓涵（女·温柔甜美）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaomengNeural', label: '晓梦（女·梦幻甜美）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaomoNeural', label: '晓墨（女·知性柔和）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaoqiuNeural', label: '晓秋（女·清亮活泼）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaoruiNeural', label: '晓睿（女·睿智知性）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaoshuangNeural', label: '晓双（女·童声活泼）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaoxuanNeural', label: '晓萱（女·甜美温柔）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaoyanNeural', label: '晓颜（女·温婉成熟）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaoyouNeural', label: '晓悠（女·童声天真）', lang: 'zh-CN' },
+        { id: 'zh-CN-XiaozhenNeural', label: '晓甄（女·自然平和）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunfengNeural', label: '云枫（男·稳重浑厚）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunhaoNeural', label: '云皓（男·低沉磁性）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunjieNeural', label: '云杰（男·沉稳专业）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunlongNeural', label: '云龙（男·大气浑厚）', lang: 'zh-CN' },
+        { id: 'zh-CN-YunzeNeural', label: '云泽（男·温和清朗）', lang: 'zh-CN' }
     ];
     const EN_VOICES = [
-        { id: 'en-US-AriaNeural', label: 'Aria（女）', lang: 'en-US' },
-        { id: 'en-US-AndrewNeural', label: 'Andrew（男）', lang: 'en-US' },
-        { id: 'en-US-AvaNeural', label: 'Ava（女）', lang: 'en-US' },
-        { id: 'en-US-BrianNeural', label: 'Brian（男）', lang: 'en-US' },
-        { id: 'en-US-ChristopherNeural', label: 'Christopher（男）', lang: 'en-US' },
-        { id: 'en-US-EmmaNeural', label: 'Emma（女）', lang: 'en-US' },
-        { id: 'en-US-EricNeural', label: 'Eric（男）', lang: 'en-US' },
-        { id: 'en-US-GuyNeural', label: 'Guy（男）', lang: 'en-US' },
-        { id: 'en-US-JennyNeural', label: 'Jenny（女）', lang: 'en-US' },
-        { id: 'en-US-MichelleNeural', label: 'Michelle（女）', lang: 'en-US' },
-        { id: 'en-US-RogerNeural', label: 'Roger（男）', lang: 'en-US' },
-        { id: 'en-US-SteffanNeural', label: 'Steffan（男）', lang: 'en-US' },
-        { id: 'en-GB-LibbyNeural', label: 'Libby（英音·女）', lang: 'en-GB' },
-        { id: 'en-GB-MaisieNeural', label: 'Maisie（英音·女）', lang: 'en-GB' },
-        { id: 'en-GB-RyanNeural', label: 'Ryan（英音·男）', lang: 'en-GB' },
-        { id: 'en-GB-SoniaNeural', label: 'Sonia（英音·女）', lang: 'en-GB' },
-        { id: 'en-GB-ThomasNeural', label: 'Thomas（英音·男）', lang: 'en-GB' },
-        { id: 'en-GB-AlfieNeural', label: 'Alfie（英音·男）', lang: 'en-GB' },
-        { id: 'en-GB-BellaNeural', label: 'Bella（英音·女）', lang: 'en-GB' },
-        { id: 'en-GB-ElliotNeural', label: 'Elliot（英音·男）', lang: 'en-GB' },
-        { id: 'en-GB-EthanNeural', label: 'Ethan（英音·男）', lang: 'en-GB' },
-        { id: 'en-GB-HollieNeural', label: 'Hollie（英音·女）', lang: 'en-GB' },
-        { id: 'en-GB-NoahNeural', label: 'Noah（英音·男）', lang: 'en-GB' },
-        { id: 'en-GB-OliverNeural', label: 'Oliver（英音·男）', lang: 'en-GB' },
-        { id: 'en-GB-OliviaNeural', label: 'Olivia（英音·女）', lang: 'en-GB' }
+        { id: 'en-US-AriaNeural', label: 'Aria（女·温暖清晰）', lang: 'en-US' },
+        { id: 'en-US-AndrewNeural', label: 'Andrew（男·温暖亲切）', lang: 'en-US' },
+        { id: 'en-US-AvaNeural', label: 'Ava（女·清晰友好）', lang: 'en-US' },
+        { id: 'en-US-BrianNeural', label: 'Brian（男·自然沉稳）', lang: 'en-US' },
+        { id: 'en-US-ChristopherNeural', label: 'Christopher（男·温暖沉稳）', lang: 'en-US' },
+        { id: 'en-US-EmmaNeural', label: 'Emma（女·甜美温柔）', lang: 'en-US' },
+        { id: 'en-US-EricNeural', label: 'Eric（男·清晰友好）', lang: 'en-US' },
+        { id: 'en-US-GuyNeural', label: 'Guy（男·阳光活力）', lang: 'en-US' },
+        { id: 'en-US-JennyNeural', label: 'Jenny（女·亲切自然）', lang: 'en-US' },
+        { id: 'en-US-MichelleNeural', label: 'Michelle（女·温暖友好）', lang: 'en-US' },
+        { id: 'en-US-RogerNeural', label: 'Roger（男·沉稳有力）', lang: 'en-US' },
+        { id: 'en-US-SteffanNeural', label: 'Steffan（男·年轻清晰）', lang: 'en-US' },
+        { id: 'en-GB-LibbyNeural', label: 'Libby（英音·女·甜美年轻）', lang: 'en-GB' },
+        { id: 'en-GB-MaisieNeural', label: 'Maisie（英音·女·活泼友好）', lang: 'en-GB' },
+        { id: 'en-GB-RyanNeural', label: 'Ryan（英音·男·温暖自然）', lang: 'en-GB' },
+        { id: 'en-GB-SoniaNeural', label: 'Sonia（英音·女·沉稳知性）', lang: 'en-GB' },
+        { id: 'en-GB-ThomasNeural', label: 'Thomas（英音·男·沉稳有力）', lang: 'en-GB' },
+        { id: 'en-GB-AlfieNeural', label: 'Alfie（英音·男·温暖年轻）', lang: 'en-GB' },
+        { id: 'en-GB-BellaNeural', label: 'Bella（英音·女·甜美柔和）', lang: 'en-GB' },
+        { id: 'en-GB-ElliotNeural', label: 'Elliot（英音·男·清晰年轻）', lang: 'en-GB' },
+        { id: 'en-GB-EthanNeural', label: 'Ethan（英音·男·自然温和）', lang: 'en-GB' },
+        { id: 'en-GB-HollieNeural', label: 'Hollie（英音·女·甜美年轻）', lang: 'en-GB' },
+        { id: 'en-GB-NoahNeural', label: 'Noah（英音·男·温和年轻）', lang: 'en-GB' },
+        { id: 'en-GB-OliverNeural', label: 'Oliver（英音·男·沉稳有力）', lang: 'en-GB' },
+        { id: 'en-GB-OliviaNeural', label: 'Olivia（英音·女·温柔优雅）', lang: 'en-GB' }
     ];
     // 语言切换用：中文 / 英文
     const LANG_MAP = {
@@ -81,6 +81,7 @@
         voice: 'zh-CN-XiaoxiaoNeural',
         style: 'affectionate',
         rate: 1.0,
+        pitch: 0,
         volume: 100
     };
 
@@ -256,6 +257,15 @@
     }
 
     // ---------- SSML 构建 ----------
+    // 音调：数字（设置滑条值，如 +12Hz）或字符串（段落指令/旧设置，如 '0Hz'/'+10Hz'）统一为 Edge-TTS pitch 格式
+    function fmtPitch(p) {
+        if (typeof p === 'number') return (p > 0 ? '+' : '') + p + 'Hz';
+        if (typeof p === 'string' && /^\s*[+-]?\d+(\.\d+)?\s*$/.test(p)) {
+            const n = parseFloat(p);
+            return (n > 0 ? '+' : '') + n + 'Hz';
+        }
+        return p || '0Hz';
+    }
     function buildSsml(text, opts) {
         const escaped = applyInlineDirectives(escapeXmlText(text));
         // 语言前缀：zh-CN / en-US / en-GB（方言 zh-CN-liaoning-* 也能匹配 zh-CN）
@@ -266,7 +276,7 @@
         return `<speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" version="1.0" xml:lang="${lang}">
     <voice name="${opts.voice}">
         ${styleTag}
-            <prosody rate="${opts.rate}" pitch="${opts.pitch || '0Hz'}" volume="${opts.volume}">${escaped}</prosody>
+            <prosody rate="${opts.rate}" pitch="${fmtPitch(opts.pitch)}" volume="${opts.volume}">${escaped}</prosody>
         ${styleEnd}
     </voice>
 </speak>`;
@@ -305,13 +315,18 @@
         paused: false,
         starting: false,   // 朗读加载阶段（start 后、第一段真正播放前）——用于防重 + 按钮转圈
         stopRequested: false,
+        singleMode: false,  // true=段落单段播放；false=全文连续播放
+        paragraphStartingIndex: -1,  // 单段播放正在合成/加载的段落 idx（防重复点击）
         segments: [],
         currentIndex: 0,
         currentAudio: null,
         currentBlobUrl: null,
         prefetchAudio: null,
         prefetchBlobUrl: null,
-        readyQueue: [],   // 预合成队列：[{idx, audio, blobUrl}]（页面打开预初始化前1-2段 + 播放中逐步预取）
+        readyQueue: [],   // 预合成队列：[{idx, audio, blobUrl}]（页面打开预初始化前1-3段 + 播放中逐步预取）
+        audioCache: {},   // 已播放/已合成段落缓存 {idx: {audio, blobUrl}}——自然播完/暂停/停止均保留，仅 prepare(换文)时清空，避免重复合成
+        previewAudio: null,  // 试听播放
+        previewBlobUrl: null,
         onStateChange: null
     };
 
@@ -339,47 +354,66 @@
         return await synthSegment(text, opts);
     }
 
-    async function playSegment(idx) {
+    async function playSegment(idx, single) {
         if (state.stopRequested || idx >= state.segments.length) {
             finishPlayback();
             return;
         }
         state.currentIndex = idx;
-        // 当前朗读段落文字变绿（醒目）
+        // 当前朗读段落文字变绿 + 图标切朗读中
         highlightParagraph(idx);
-        let blob;
+        setParaStatus(idx, 'reading');
+        let audio, blobUrl;
         try {
-            // 优先使用预合成队列中的音频（页面打开预初始化 + 播放中逐步预取）
-            const readyIdx = state.readyQueue.findIndex(q => q.idx === idx);
-            if (readyIdx >= 0) {
-                state.currentAudio = state.readyQueue[readyIdx].audio;
-                state.currentBlobUrl = state.readyQueue[readyIdx].blobUrl;
-                state.readyQueue.splice(readyIdx, 1);
+            // 1) 预取队列 → 移入永久缓存（播完/暂停/停止均保留，仅 prepare 换文时清空）
+            const qIdx = state.readyQueue.findIndex(q => q.idx === idx);
+            if (qIdx >= 0) {
+                const q = state.readyQueue[qIdx];
+                state.readyQueue.splice(qIdx, 1);
+                state.audioCache[idx] = { audio: q.audio, blobUrl: q.blobUrl };
+                audio = q.audio; blobUrl = q.blobUrl;
+            } else if (state.audioCache[idx]) {
+                // 2) 已播放缓存：直接复用，不重新合成
+                audio = state.audioCache[idx].audio;
+                blobUrl = state.audioCache[idx].blobUrl;
+                audio.currentTime = 0;
             } else if (state.prefetchAudio && state.prefetchBlobUrl) {
-                // 兼容旧预取
-                state.currentAudio = state.prefetchAudio;
-                state.currentBlobUrl = state.prefetchBlobUrl;
-                state.prefetchAudio = null;
-                state.prefetchBlobUrl = null;
+                // 3) 旧兼容预取
+                state.audioCache[idx] = { audio: state.prefetchAudio, blobUrl: state.prefetchBlobUrl };
+                audio = state.prefetchAudio; blobUrl = state.prefetchBlobUrl;
+                state.prefetchAudio = null; state.prefetchBlobUrl = null;
             } else {
-                blob = await synthForIndex(idx);
-                if (!blob) { playSegment(idx + 1); return; }
-                state.currentBlobUrl = URL.createObjectURL(blob);
-                state.currentAudio = new Audio(state.currentBlobUrl);
+                // 4) 现场合成
+                setParaStatus(idx, 'loading');
+                const b = await synthForIndex(idx);
+                if (!b) { playSegment(idx + 1, single); return; }
+                blobUrl = URL.createObjectURL(b);
+                audio = new Audio(blobUrl);
+                state.audioCache[idx] = { audio, blobUrl };
             }
-            // 播放中逐步预取后续段落（维护 readyQueue，窗口 2 段）
-            ensurePrefetch();
-            state.currentAudio.onended = () => {
-                playSegment(idx + 1);
+            state.currentAudio = audio;
+            state.currentBlobUrl = blobUrl;
+            // 全文播放中逐步预取后续段落（窗口 3 段）；单段播放不预取
+            if (!single) ensurePrefetch();
+            audio.onended = () => {
+                if (state.stopRequested) return;
+                // 本段播完 → 图标回播放态（音频已缓存，点击可再播无需重新合成）
+                setParaStatus(idx, 'ready');
+                if (single) {
+                    singleParagraphFinished(idx);
+                } else {
+                    playSegment(idx + 1, false);
+                }
             };
-            state.currentAudio.onerror = () => {
+            audio.onerror = () => {
                 showToast && showToast('语音播放出错，跳过本段', 'error');
-                playSegment(idx + 1);
+                playSegment(idx + 1, single);
             };
-            await state.currentAudio.play();
+            await audio.play();
             state.starting = false;   // 第一段真正开始朗读，退出加载阶段
             state.playing = true;
             state.paused = false;
+            state.paragraphStartingIndex = -1;
             setButtonState('playing');
         } catch (e) {
             console.error('Edge-TTS 播放失败:', e);
@@ -405,36 +439,54 @@
         const content = document.getElementById('storyContent');
         if (content) content.querySelectorAll('p.tts-reading').forEach(p => p.classList.remove('tts-reading'));
     }
-    // 段落状态图标（CSS 伪元素，不占 DOM 空间）：'' 无 / 'loading' 转圈 / 'ready' 已加载
+    // 段落状态图标（span 占位，图标本体为 CSS 伪元素；absolute 定位不推移文本）
+    // 四态：idle 下载 / loading 加载中 / ready 播放 / reading 朗读中
     function setParaStatus(idx, status) {
         const content = document.getElementById('storyContent');
         if (!content) return;
         const ps = content.querySelectorAll('p');
+        const apply = (p, st) => {
+            const ic = p.querySelector('.tts-para-icon');
+            if (!ic) return;
+            const cls = st === 'loading' ? 'tts-loading' : st === 'ready' ? 'tts-ready' : st === 'reading' ? 'tts-reading' : 'tts-idle';
+            ic.className = 'tts-para-icon ' + cls;
+        };
         if (idx < 0) {
-            ps.forEach(p => p.classList.remove('tts-loading', 'tts-ready'));
+            ps.forEach(p => apply(p, 'idle'));
             return;
         }
         const p = ps[idx];
-        if (!p) return;
-        p.classList.toggle('tts-loading', status === 'loading');
-        p.classList.toggle('tts-ready', status === 'ready');
+        if (p) apply(p, status);
     }
 
-    // ---------- 预合成队列管理 ----------
-    function clearReadyQueue() {
+    // ---------- 缓存管理 ----------
+    // 彻底清空所有合成缓存（仅 prepare 换文章时调用；暂停/停止/播完均保留 audioCache 以便段落秒播）
+    function clearAllCaches() {
         state.readyQueue.forEach(q => {
             try { if (q.audio) q.audio.pause(); } catch (e) { /* ignore */ }
             if (q.blobUrl) URL.revokeObjectURL(q.blobUrl);
         });
         state.readyQueue = [];
+        Object.keys(state.audioCache).forEach(k => {
+            const c = state.audioCache[k];
+            try { if (c.audio) c.audio.pause(); } catch (e) { /* ignore */ }
+            if (c.blobUrl) URL.revokeObjectURL(c.blobUrl);
+        });
+        state.audioCache = {};
+        if (state.previewAudio) { try { state.previewAudio.pause(); } catch (e) { /* ignore */ } state.previewAudio = null; }
+        if (state.previewBlobUrl) { URL.revokeObjectURL(state.previewBlobUrl); state.previewBlobUrl = null; }
+        if (state.currentAudio) { try { state.currentAudio.pause(); } catch (e) { /* ignore */ } state.currentAudio = null; }
+        if (state.currentBlobUrl) { URL.revokeObjectURL(state.currentBlobUrl); state.currentBlobUrl = null; }
+        if (state.prefetchAudio) { try { state.prefetchAudio.pause(); } catch (e) { /* ignore */ } state.prefetchAudio = null; }
+        if (state.prefetchBlobUrl) { URL.revokeObjectURL(state.prefetchBlobUrl); state.prefetchBlobUrl = null; }
     }
-    // 播放中逐步预取：当前段之后预合成 2 段
+    // 播放中逐步预取：当前段之后预合成 3 段（只入 readyQueue，不重复已有缓存）
     function ensurePrefetch() {
         if (state.stopRequested) return;
         const from = state.currentIndex + 1;
-        const to = Math.min(from + 2, state.segments.length);
+        const to = Math.min(from + 3, state.segments.length);
         for (let i = from; i < to; i++) {
-            if (state.readyQueue.some(q => q.idx === i)) continue;
+            if (state.readyQueue.some(q => q.idx === i) || state.audioCache[i]) continue;
             setParaStatus(i, 'loading');
             synthForIndex(i).then(b => {
                 if (b && !state.stopRequested) {
@@ -445,20 +497,17 @@
             }).catch(() => { /* 预取失败忽略，播放时再取 */ });
         }
     }
-    // 页面打开预初始化：合成前 1-2 段（不播放），start 时优先使用
+    // 页面打开预初始化：合成前 1-3 段（不播放），start 时优先使用
     async function prepare(text) {
         state.stopRequested = true;
-        if (state.currentAudio) { try { state.currentAudio.pause(); } catch (e) { /* ignore */ } state.currentAudio = null; }
-        if (state.currentBlobUrl) { URL.revokeObjectURL(state.currentBlobUrl); state.currentBlobUrl = null; }
-        state.prefetchAudio = null;
-        state.prefetchBlobUrl = null;
-        clearReadyQueue();
+        clearAllCaches();
         highlightClear();
         state.playing = false;
         state.paused = false;
+        state.singleMode = false;
         state.segments = getSegments(text || '');
         if (state.segments.length === 0) return;
-        const n = Math.min(2, state.segments.length); // 前 1-2 段
+        const n = Math.min(3, state.segments.length); // 前 1-3 段
         for (let i = 0; i < n; i++) {
             setParaStatus(i, 'loading');
             try {
@@ -471,25 +520,94 @@
         }
     }
 
+    // 全文/单段自然播完（不清缓存，段落图标保留 ready 可再播）
     function finishPlayback() {
-        cleanupAudio();
+        if (state.currentAudio) { try { state.currentAudio.pause(); } catch (e) { /* ignore */ } }
+        state.currentAudio = null;
+        state.currentBlobUrl = null; // 不 revoke（audioCache 中仍被 Audio 对象持有）
         highlightClear();
-        setParaStatus(-1, '');
         state.playing = false;
         state.paused = false;
         state.starting = false;
+        state.singleMode = false;
+        state.paragraphStartingIndex = -1;
         setButtonState('stopped');
     }
-
-    function cleanupAudio() {
+    // 单段播放完成：仅停止，缓存保留
+    function singleParagraphFinished(idx) {
+        state.currentAudio = null;
+        state.currentBlobUrl = null;
+        highlightClear();
+        state.playing = false;
+        state.paused = false;
+        state.starting = false;
+        state.singleMode = false;
+        state.paragraphStartingIndex = -1;
+        setParaStatus(-1, '');
+        setParaStatus(idx, 'ready');
+        setButtonState('stopped');
+    }
+    // 立即暂停当前播放（不清理缓存；段落播放用）
+    function haltPlayback() {
+        state.stopRequested = true;
+        if (state.previewAudio) { try { state.previewAudio.pause(); } catch (e) { /* ignore */ } }
         if (state.currentAudio) {
             try { state.currentAudio.pause(); } catch (e) { /* ignore */ }
             state.currentAudio = null;
         }
-        if (state.currentBlobUrl) { URL.revokeObjectURL(state.currentBlobUrl); state.currentBlobUrl = null; }
-        if (state.prefetchAudio) { try { state.prefetchAudio.pause(); } catch (e) { /* ignore */ } state.prefetchAudio = null; }
-        if (state.prefetchBlobUrl) { URL.revokeObjectURL(state.prefetchBlobUrl); state.prefetchBlobUrl = null; }
-        clearReadyQueue();
+        state.currentBlobUrl = null;
+        state.playing = false;
+        state.paused = false;
+        state.starting = false;
+        state.singleMode = false;
+        state.paragraphStartingIndex = -1;
+        highlightClear();
+        setButtonState('stopped');
+    }
+    // 点击段落图标：单段播放（防重；全文/他段在播先暂停）
+    async function playParagraph(idx) {
+        if (!state.segments || idx >= state.segments.length) return;
+        // 防重：该段正在播放或正在合成
+        if (state.singleMode && (state.playing && state.currentIndex === idx || state.starting && state.paragraphStartingIndex === idx)) return;
+        // 全文朗读或其他段播放中 → 先暂停（不清缓存）
+        if (state.playing || state.starting) haltPlayback();
+        state.stopRequested = false;
+        state.singleMode = true;
+        state.paragraphStartingIndex = idx;
+        state.starting = true;
+        // 已缓存则直接播放（不显示加载态，避免闪一下）
+        if (!state.audioCache[idx] && !state.readyQueue.some(q => q.idx === idx)) {
+            setParaStatus(idx, 'loading');
+        }
+        setButtonState('loading');
+        await playSegment(idx, true);
+    }
+    // 试听：按当前设置合成指定文本
+    async function preview(text, settings) {
+        haltPlayback();
+        const opts = Object.assign({}, state.settings, settings || {});
+        const full = Object.assign({}, opts, {
+            rate: parseFloat(opts.rate) || 1.0,
+            pitch: fmtPitch(opts.pitch),
+            volume: parseInt(opts.volume, 10) || 100
+        });
+        try {
+            const b = await synthSegment(text, full);
+            if (state.previewBlobUrl) { URL.revokeObjectURL(state.previewBlobUrl); state.previewBlobUrl = null; }
+            const url = URL.createObjectURL(b);
+            const audio = new Audio(url);
+            state.previewAudio = audio;
+            state.previewBlobUrl = url;
+            audio.onended = () => {
+                if (state.previewBlobUrl) { URL.revokeObjectURL(state.previewBlobUrl); state.previewBlobUrl = null; }
+                state.previewAudio = null;
+            };
+            await audio.play();
+            return true;
+        } catch (e) {
+            showToast && showToast('试听失败：' + e.message, 'error');
+            return false;
+        }
     }
 
     // ---------- 对外 API ----------
@@ -500,6 +618,7 @@
             state.stopRequested = false;
             state.paused = false;
             state.starting = true;
+            state.singleMode = false;
             state.onLoading = callbacks && callbacks.onLoading ? callbacks.onLoading : null;
             state.segments = getSegments(text || '');
             if (state.segments.length === 0) {
@@ -511,7 +630,7 @@
             // 进入朗读加载阶段（按钮转圈），保留 prepare 预合成好的 readyQueue
             setButtonState('loading');
             if (state.onLoading) state.onLoading();
-            playSegment(0);
+            playSegment(0, false);
         },
         pause() {
             if (state.currentAudio && state.playing && !state.paused) {
@@ -531,28 +650,28 @@
             }
         },
         stop() {
-            state.stopRequested = true;
-            cleanupAudio();
-            highlightClear();
+            haltPlayback();
             setParaStatus(-1, '');
-            state.playing = false;
-            state.paused = false;
-            state.starting = false;
             state.segments = [];
-            setButtonState('stopped');
         },
         isPlaying() { return state.playing && !state.paused; },
         isPaused() { return state.paused; },
         getSettings() { return Object.assign({}, state.settings); },
         setSettings(s) { state.settings = Object.assign({}, state.settings, s); saveSettings(state.settings); },
-        // 页面打开预初始化：合成前 1-2 段语音（不播放），开始朗读时优先使用
+        // 页面打开预初始化：合成前 1-3 段语音（不播放），开始朗读时优先使用
         prepare(text) { return prepare(text); },
         // 供测试/调试
         _state: state,
         _synthSegment: synthSegment,
         _parseParagraphDirectives: parseParagraphDirectives,
         _highlightParagraph: highlightParagraph,
-        _highlightClear: highlightClear
+        _highlightClear: highlightClear,
+        // 段落单段播放（点击段落图标）
+        playParagraph: playParagraph,
+        // 试听：按当前配置合成指定文本
+        preview: preview,
+        // 立即暂停当前播放（保留缓存）
+        halt: haltPlayback
     };
     window.EdgeTTS = EdgeTTS;
 
@@ -605,21 +724,33 @@
                             <span class="edge-tts-lang-en">English</span>
                         </div>
                     </div>
-                    <div class="edge-tts-field">
-                        <label>朗读人物</label>
-                        <select id="edgeTtsVoiceSelect"></select>
+                    <div class="edge-tts-row">
+                        <div class="edge-tts-field">
+                            <label>朗读人物</label>
+                            <select id="edgeTtsVoiceSelect"></select>
+                        </div>
+                        <div class="edge-tts-field">
+                            <label>语言风格</label>
+                            <select id="edgeTtsStyleSelect">${styleOptions}</select>
+                        </div>
+                    </div>
+                    <div class="edge-tts-row">
+                        <div class="edge-tts-field">
+                            <label>语速 <span class="edge-tts-value" id="edgeTtsRateValue">1.00</span></label>
+                            <input type="range" id="edgeTtsRateRange" min="0.5" max="2.0" step="0.05" value="1.0">
+                        </div>
+                        <div class="edge-tts-field">
+                            <label>音调 <span class="edge-tts-value" id="edgeTtsPitchValue">0</span></label>
+                            <input type="range" id="edgeTtsPitchRange" min="-50" max="50" step="1" value="0">
+                        </div>
+                    </div>
+                    <div class="edge-tts-row edge-tts-btn-row">
+                        <button class="edge-tts-btn edge-tts-btn-secondary" id="edgeTtsPreviewBtn">试听</button>
+                        <button class="edge-tts-btn edge-tts-btn-primary" id="edgeTtsApplyBtn">启用</button>
                     </div>
                     <div class="edge-tts-field">
-                        <label>语言风格</label>
-                        <select id="edgeTtsStyleSelect">${styleOptions}</select>
-                    </div>
-                    <div class="edge-tts-field">
-                        <label>语速：<span class="edge-tts-value" id="edgeTtsRateValue">1.0</span></label>
-                        <input type="range" id="edgeTtsRateRange" min="0.5" max="2.0" step="0.05" value="1.0">
-                    </div>
-                    <div class="edge-tts-field">
-                        <label>音量：<span class="edge-tts-value" id="edgeTtsVolumeValue">100</span></label>
-                        <input type="range" id="edgeTtsVolumeRange" min="0" max="100" step="1" value="100">
+                        <label>试听文本</label>
+                        <textarea id="edgeTtsPreviewText" rows="3" placeholder="输入想试听的文字…"></textarea>
                     </div>
                 </div>
             </div>
@@ -641,9 +772,16 @@
         switchLang(lang);
         document.getElementById('edgeTtsStyleSelect').value = s.style;
         document.getElementById('edgeTtsRateRange').value = s.rate;
-        document.getElementById('edgeTtsRateValue').textContent = s.rate;
-        document.getElementById('edgeTtsVolumeRange').value = s.volume;
-        document.getElementById('edgeTtsVolumeValue').textContent = s.volume;
+        document.getElementById('edgeTtsRateValue').textContent = parseFloat(s.rate).toFixed(2);
+        const pitch = parseInt(s.pitch, 10) || 0;
+        document.getElementById('edgeTtsPitchRange').value = pitch;
+        document.getElementById('edgeTtsPitchValue').textContent = pitch;
+        // 试听文本：首次打开默认取本篇文章第一段（之后保留用户编辑）
+        const previewText = document.getElementById('edgeTtsPreviewText');
+        if (!previewText.dataset.init && state.segments && state.segments.length) {
+            previewText.value = state.segments[0].text;
+            previewText.dataset.init = '1';
+        }
         overlay.style.display = 'flex';
     }
 
@@ -663,8 +801,8 @@
         const styleSel = document.getElementById('edgeTtsStyleSelect');
         const rateRange = document.getElementById('edgeTtsRateRange');
         const rateValue = document.getElementById('edgeTtsRateValue');
-        const volRange = document.getElementById('edgeTtsVolumeRange');
-        const volValue = document.getElementById('edgeTtsVolumeValue');
+        const pitchRange = document.getElementById('edgeTtsPitchRange');
+        const pitchValue = document.getElementById('edgeTtsPitchValue');
         langSwitch.addEventListener('change', () => {
             const lang = langSwitch.checked ? 'zh' : 'en';
             switchLang(lang);
@@ -675,9 +813,24 @@
             rateValue.textContent = parseFloat(rateRange.value).toFixed(2);
             EdgeTTS.setSettings({ rate: parseFloat(rateRange.value) });
         });
-        volRange.addEventListener('input', () => {
-            volValue.textContent = volRange.value;
-            EdgeTTS.setSettings({ volume: parseInt(volRange.value, 10) });
+        pitchRange.addEventListener('input', () => {
+            pitchValue.textContent = pitchRange.value;
+            EdgeTTS.setSettings({ pitch: parseInt(pitchRange.value, 10) });
+        });
+        // 试听：按当前弹窗配置合成试听文本
+        document.getElementById('edgeTtsPreviewBtn').addEventListener('click', async () => {
+            const text = document.getElementById('edgeTtsPreviewText').value.trim();
+            if (!text) { showToast && showToast('请输入试听文本', 'warning'); return; }
+            const btn = document.getElementById('edgeTtsPreviewBtn');
+            btn.disabled = true;
+            const ok = await EdgeTTS.preview(text, state.settings);
+            btn.disabled = false;
+            if (ok) showToast && showToast('试听中…', 'success');
+        });
+        // 启用：配置已实时生效，确认并关闭
+        document.getElementById('edgeTtsApplyBtn').addEventListener('click', () => {
+            closeSettings();
+            showToast && showToast('语音设置已启用', 'success');
         });
     }
 
