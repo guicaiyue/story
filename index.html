@@ -34,7 +34,9 @@
         .edge-tts-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center}
         .edge-tts-modal{background:#fff;border-radius:12px;width:min(420px,92vw);max-height:86vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.25);animation:edgeTtsPop .2s ease}
         @keyframes edgeTtsPop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
-        .edge-tts-modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eee;font-size:17px;font-weight:600;color:#333}
+        .edge-tts-modal-header{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid #eee}
+        .edge-tts-modal-header h3{margin:0;font-size:17px;font-weight:600;color:#333}
+        .edge-tts-modal-header .edge-tts-lang-switch{margin-left:auto}
         .edge-tts-modal-close{background:none;border:none;font-size:18px;color:#999;cursor:pointer;padding:4px}
         .edge-tts-modal-close:hover{color:#333}
         .edge-tts-modal-body{padding:16px 18px 20px}
@@ -84,7 +86,7 @@
         .edge-tts-grid2 .edge-tts-field{margin-bottom:0}
         .edge-tts-textarea{width:100%;min-height:72px;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#333;background:#fff;outline:none;resize:vertical;line-height:1.6;box-sizing:border-box}
         .edge-tts-textarea:focus{border-color:#4A90E2}
-        .edge-tts-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+        .edge-tts-btn-row{display:grid;grid-template-columns:1fr;gap:12px;margin-top:4px}
         .edge-tts-btn{padding:10px 0;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
         .edge-tts-btn:hover{opacity:.85}
         .edge-tts-btn-secondary{background:#f0f2f5;color:#555}
@@ -105,7 +107,7 @@
 
     <link rel="stylesheet" href="/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260813">
+    <link rel="stylesheet" href="/css/styles.css?v=20260814">
     <link rel="stylesheet" href="/live2d/css/live2d.css"/>
 
     <script src="/js/supabase.js"></script>
@@ -382,8 +384,8 @@
     </script>
 
     <script src="/js/supabase-client.js"></script>
-    <script src="/js/app.js?v=20260813"></script>
-    <script src="/js/edge-tts.js?v=20260813"></script>
+    <script src="/js/app.js?v=20260814"></script>
+    <script src="/js/edge-tts.js?v=20260814"></script>
     <script type="text/javascript" src="/live2d/js/live2d.js"></script>
     <script type="text/javascript" src="/live2d/js/message.js"></script>
     <script type="text/javascript">

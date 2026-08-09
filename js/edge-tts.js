@@ -709,21 +709,18 @@
         return `<div class="edge-tts-modal-overlay" id="edgeTtsModalOverlay" style="display:none">
             <div class="edge-tts-modal">
                 <div class="edge-tts-modal-header">
-                    <h3>语音设置</h3>
+                    <h3>朗读语言</h3>
+                    <div class="edge-tts-lang-switch">
+                        <span class="edge-tts-lang-label" id="edgeTtsLangLabel">中文</span>
+                        <label class="edge-tts-switch">
+                            <input type="checkbox" id="edgeTtsLangSwitch" checked>
+                            <span class="edge-tts-slider"></span>
+                        </label>
+                        <span class="edge-tts-lang-en">English</span>
+                    </div>
                     <button class="edge-tts-modal-close" id="edgeTtsModalClose"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="edge-tts-modal-body">
-                    <div class="edge-tts-field edge-tts-lang-row">
-                        <label>朗读语言</label>
-                        <div class="edge-tts-lang-switch">
-                            <span class="edge-tts-lang-label" id="edgeTtsLangLabel">中文</span>
-                            <label class="edge-tts-switch">
-                                <input type="checkbox" id="edgeTtsLangSwitch" checked>
-                                <span class="edge-tts-slider"></span>
-                            </label>
-                            <span class="edge-tts-lang-en">English</span>
-                        </div>
-                    </div>
                     <div class="edge-tts-row">
                         <div class="edge-tts-field">
                             <label>朗读人物</label>
@@ -746,7 +743,6 @@
                     </div>
                     <div class="edge-tts-row edge-tts-btn-row">
                         <button class="edge-tts-btn edge-tts-btn-secondary" id="edgeTtsPreviewBtn">试听</button>
-                        <button class="edge-tts-btn edge-tts-btn-primary" id="edgeTtsApplyBtn">启用</button>
                     </div>
                     <div class="edge-tts-field">
                         <label>试听文本</label>
@@ -788,6 +784,17 @@
     function closeSettings() {
         const overlay = document.getElementById('edgeTtsModalOverlay');
         if (overlay) overlay.style.display = 'none';
+        // 关闭弹窗时停止正在试听的语音
+        if (state.previewAudio) {
+            try { state.previewAudio.pause(); } catch (e) { /* ignore */ }
+            state.previewAudio = null;
+        }
+        if (state.previewBlobUrl) {
+            URL.revokeObjectURL(state.previewBlobUrl);
+            state.previewBlobUrl = null;
+        }
+        const btn = document.getElementById('edgeTtsPreviewBtn');
+        if (btn) btn.disabled = false;
     }
 
     function bindModalEvents() {
@@ -826,11 +833,6 @@
             const ok = await EdgeTTS.preview(text, state.settings);
             btn.disabled = false;
             if (ok) showToast && showToast('试听中…', 'success');
-        });
-        // 启用：配置已实时生效，确认并关闭
-        document.getElementById('edgeTtsApplyBtn').addEventListener('click', () => {
-            closeSettings();
-            showToast && showToast('语音设置已启用', 'success');
         });
     }
 
