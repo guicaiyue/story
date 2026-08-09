@@ -910,6 +910,8 @@ async function loadStoryDetail(story) {
         const { data, error } = await window.supabaseClient.fetchData('story_content',options);
         if (data) {
             const newData =  data[0];
+            // 语音版本优先：未来 story_content 表若新增 voice_content 字段（带指令），TTS 自动优先读取
+            window.__storyVoiceText = (newData && (newData.voice_content || newData.content)) || '';
             // 更新故事详情页面
             elements.storyTitle.textContent = story.title;
             elements.storyType.textContent = story.category_name;
@@ -1455,27 +1457,25 @@ function getRandomInt() {
     return Math.floor(Math.random() * 7);
 }
 
-// TTS语音朗读相关变量
+// TTS语音朗读相关变量（Edge-TTS 引擎驱动，核心实现见 js/edge-tts.js）
 let ttsState = {
     isPlaying: false,
     isPaused: false,
-    currentUtterance: null,
     currentText: '',
     currentPosition: 0
 };
 
+// 获取朗读文本：优先语音版本（带指令），无则用正文文字版本
+function ttsGetText() {
+    if (window.__storyVoiceText && window.__storyVoiceText.trim()) {
+        return window.__storyVoiceText;
+    }
+    const storyContent = elements.storyContent;
+    return storyContent ? storyContent.textContent.trim() : '';
+}
+
 // TTS播放/暂停切换
 function ttsPlay() {
-    if (!ttsState.currentText) {
-        // 获取当前故事内容
-        const storyContent = elements.storyContent;
-        if (!storyContent || !storyContent.textContent.trim()) {
-            showToast('没有可朗读的内容', 'warning');
-            return;
-        }
-        ttsState.currentText = storyContent.textContent.trim();
-    }
-
     if (ttsState.isPlaying) {
         // 当前正在播放，暂停
         ttsPause();
@@ -1488,95 +1488,41 @@ function ttsPlay() {
     }
 }
 
-// 开始TTS播放
+// 开始TTS播放（Edge-TTS 引擎，按换行分段逐段合成播放）
 function ttsStart() {
-    if (!window.speechSynthesis) {
-        showToast('您的浏览器不支持语音朗读功能', 'error');
+    if (!window.EdgeTTS) {
+        showToast('语音引擎未加载，请刷新页面', 'error');
         return;
     }
-
-    // 停止当前播放
-    window.speechSynthesis.cancel();
-
-    // 创建新的语音合成实例
-    ttsState.currentUtterance = new SpeechSynthesisUtterance(ttsState.currentText);
-
-    // 设置语音参数
-    ttsState.currentUtterance.lang = 'zh-CN'; // 中文
-    ttsState.currentUtterance.rate = 1; // 语速
-    ttsState.currentUtterance.pitch = 1; // 音调
-    ttsState.currentUtterance.volume = 1; // 音量
-
-    // 事件监听
-    ttsState.currentUtterance.onstart = () => {
-        ttsState.isPlaying = true;
-        ttsState.isPaused = false;
-        updateTTSButton('playing');
-        // showToast('开始朗读', 'success');
-    };
-
-    ttsState.currentUtterance.onend = () => {
-        ttsState.isPlaying = false;
-        ttsState.isPaused = false;
-        updateTTSButton('stopped');
-        // showToast('朗读完成', 'info');
-    };
-
-    ttsState.currentUtterance.onerror = (event) => {
-        ttsState.isPlaying = false;
-        ttsState.isPaused = false;
-        updateTTSButton('stopped');
-        // showToast('朗读出错: ' + event.error, 'error');
-    };
-
-    ttsState.currentUtterance.onpause = () => {
-        ttsState.isPaused = true;
-        updateTTSButton('paused');
-    };
-
-    ttsState.currentUtterance.onresume = () => {
-        ttsState.isPaused = false;
-        updateTTSButton('playing');
-    };
-    // var voices = speechSynthesis.getVoices();
-    // console.log(voices.map(v => v.voiceURI));
-    // 开始播放
-    window.speechSynthesis.speak(ttsState.currentUtterance);
+    if (!ttsState.currentText) {
+        ttsState.currentText = ttsGetText();
+        if (!ttsState.currentText) {
+            showToast('没有可朗读的内容', 'warning');
+            return;
+        }
+    }
+    EdgeTTS.start(ttsState.currentText);
 }
 
 // 暂停TTS播放
 function ttsPause() {
-    if (window.speechSynthesis && ttsState.isPlaying) {
-        ttsState.isPlaying = false;
-        ttsState.isPaused = true;
-        window.speechSynthesis.pause();
-        // showToast('朗读已暂停', 'info');
-    }
+    if (window.EdgeTTS) EdgeTTS.pause();
 }
 
 // 恢复TTS播放
 function ttsResume() {
-    if (window.speechSynthesis && ttsState.isPaused) {
-        ttsState.isPlaying = true;
-        ttsState.isPaused = false;
-        window.speechSynthesis.resume();
-        // showToast('继续朗读', 'info');
-    }
+    if (window.EdgeTTS) EdgeTTS.resume();
 }
 
 // 停止TTS播放
 function ttsStop() {
-    if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        ttsState.isPlaying = false;
-        ttsState.isPaused = false;
-        updateTTSButton('stopped');
-    }
+    if (window.EdgeTTS) EdgeTTS.stop();
 }
 
 // 重新播放
 function ttsReplay() {
     ttsStop();
+    ttsState.currentText = '';
     setTimeout(() => {
         ttsStart();
     }, 100);
