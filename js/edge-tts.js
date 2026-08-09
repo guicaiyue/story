@@ -779,7 +779,7 @@
         // 试听文本：首次打开默认取本篇文章第一段（之后保留用户编辑）
         const previewText = document.getElementById('edgeTtsPreviewText');
         if (!previewText.dataset.init && state.segments && state.segments.length) {
-            previewText.value = state.segments[0].text;
+            previewText.value = state.segments[0];
             previewText.dataset.init = '1';
         }
         overlay.style.display = 'flex';
