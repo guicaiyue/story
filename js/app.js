@@ -80,8 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 显示欢迎动画
     showWelcomeAnimation();
 
-    // 加载分类
-    loadCategories();
+    // 加载分类（完成后解析 URL 路由）
+    loadCategories().then(() => handleRoute());
+
+    // 浏览器前进/后退时按 URL 恢复视图
+    window.addEventListener('popstate', handleRoute);
 
     // 绑定搜索事件到浮动搜索框内的输入框，而不是直接绑定到 elements.searchInput
     elements.floatingSearch.querySelector('#searchInput').addEventListener('keydown', handleSearchKeydown);
@@ -288,7 +291,7 @@ function showWelcomeAnimation() {
     welcomeOverlay.innerHTML = `
         <div class="welcome-content">
             <div class="welcome-icon">
-                <img src="../img/story.png" alt="小故事铺" class="logo-img">
+                <img src="/img/story.png" alt="小故事铺" class="logo-img">
             </div>
             <h1 class="welcome-title">小故事铺</h1>
             <p class="welcome-text">${welcomeText}</p>
@@ -534,6 +537,46 @@ async function loadCategories() {
     } catch (error) {
         console.error('加载分类出错:', error);
         hideLoading();
+    }
+}
+
+// URL 路由：根据当前 pathname 恢复视图（支持 /story/home/list/{categoryId} 与 /story/{storyId}）
+async function handleRoute() {
+    const path = window.location.pathname;
+
+    // 分类路径: /story/home/list/{categoryId}
+    let match = path.match(/^\/story\/home\/list\/(\d+)$/);
+    if (match) {
+        const categoryId = parseInt(match[1], 10);
+        // 如果当前在文章页，先回首页再切分类；否则若与已激活分类不同才切换（避免重复加载）
+        if (elements.articleView.style.display !== 'none') {
+            showHome(true, categoryId);
+        } else if (categoryId !== currentState.activeCategoryId) {
+            handleCategoryChange(categoryId, true);
+        }
+        return;
+    }
+
+    // 文章路径: /story/{storyId}
+    match = path.match(/^\/story\/(\d+)$/);
+    if (match) {
+        const storyId = parseInt(match[1], 10);
+        try {
+            const { data, error } = await window.supabaseClient.fetchData('story_main', { filter: { id: storyId } });
+            if (data && data.length > 0) {
+                await loadStoryDetail(data[0]);
+            } else {
+                console.error('未找到故事 id=' + storyId, error);
+            }
+        } catch (err) {
+            console.error('加载路由故事出错:', err);
+        }
+        return;
+    }
+
+    // 默认首页：若当前在文章页则返回首页
+    if (elements.articleView.style.display !== 'none') {
+        showHome(false);
     }
 }
 
@@ -850,6 +893,12 @@ async function loadStories(append = false) {
 
 // 加载故事详情
 async function loadStoryDetail(story) {
+    // 路由支持：更新 URL 为文章路径
+    const storyPath = '/story/' + story.id;
+    if (window.location.pathname !== storyPath) {
+        history.pushState({}, '', storyPath);
+    }
+
     // 显示加载遮罩
     showLoading();
 
@@ -907,6 +956,12 @@ function handleCategoryChange(categoryId, isRefresh = false) {
         return;
     }
 
+    // 路由支持：更新 URL 为分类路径
+    const categoryPath = '/story/home/list/' + categoryId;
+    if (window.location.pathname !== categoryPath) {
+        history.pushState({}, '', categoryPath);
+    }
+
     // 更新UI
     document.querySelectorAll('.filter-tag').forEach(tag => {
         tag.classList.remove('active');
@@ -941,6 +996,11 @@ function handleCategoryChange(categoryId, isRefresh = false) {
 
 // 显示首页
 function showHome(fromArticle = false, categoryId = null) {
+    // 路由支持：返回首页时更新 URL
+    if (!fromArticle && window.location.pathname !== '/') {
+        history.pushState({}, '', '/');
+    }
+
     // 添加转场动画
     elements.articleView.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
     elements.articleView.style.opacity = '0';
@@ -1529,18 +1589,18 @@ function updateTTSButton(state) {
 
     switch (state) {
         case 'playing':
-            playIcon.src = '../img/playstop.png';
+            playIcon.src = '/img/playstop.png';
             playIcon.alt = '暂停朗读';
             playButton.title = '暂停朗读';
             break;
         case 'paused':
-            playIcon.src = '../img/play.png';
+            playIcon.src = '/img/play.png';
             playIcon.alt = '继续朗读';
             playButton.title = '继续朗读';
             break;
         case 'stopped':
         default:
-            playIcon.src = '../img/play.png';
+            playIcon.src = '/img/play.png';
             playIcon.alt = '开始朗读';
             playButton.title = '开始朗读';
             break;
