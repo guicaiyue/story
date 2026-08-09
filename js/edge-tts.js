@@ -419,17 +419,23 @@
         });
     }
 
-    // 设置按钮：给 tts-controls 插入齿轮按钮
+    // 设置按钮：给 tts-controls 插入齿轮按钮（静态按钮已存在时也需绑定点击）
     function ensureSettingsButton() {
         const controls = document.querySelector('.tts-controls');
-        if (!controls || document.getElementById('ttsSettingsButton')) return;
-        const btn = document.createElement('button');
-        btn.id = 'ttsSettingsButton';
-        btn.className = 'tts-button tts-settings-button';
-        btn.title = '语音设置';
-        btn.innerHTML = '<i class="fas fa-cog" style="font-size:18px;color:inherit"></i>';
-        btn.addEventListener('click', openSettings);
-        controls.appendChild(btn);
+        if (!controls) return;
+        let btn = document.getElementById('ttsSettingsButton');
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.id = 'ttsSettingsButton';
+            btn.className = 'tts-button tts-settings-button';
+            btn.title = '语音设置';
+            btn.innerHTML = '<i class="fas fa-cog" style="font-size:18px;color:inherit"></i>';
+            controls.appendChild(btn);
+        }
+        if (!btn._edgeTtsBound) {
+            btn.addEventListener('click', openSettings);
+            btn._edgeTtsBound = true;
+        }
     }
 
     // DOMContentLoaded 后注入设置按钮
