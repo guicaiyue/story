@@ -46,6 +46,17 @@
         .edge-tts-value{color:#4A90E2;font-weight:600;min-width:44px;text-align:right}
         .edge-tts-tip{font-size:12px;color:#999;background:#f7f8fa;border-radius:8px;padding:10px 12px;line-height:1.7}
         .edge-tts-tip code{background:#eef1f6;border-radius:4px;padding:1px 5px;color:#4A90E2}
+        .edge-tts-lang-switch{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+        .edge-tts-lang-label{font-size:14px;color:#333;font-weight:600}
+        .edge-tts-lang-en{font-size:13px;color:#999}
+        .edge-tts-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;vertical-align:middle}
+        .edge-tts-switch input{opacity:0;width:0;height:0}
+        .edge-tts-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.3s}
+        .edge-tts-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+        .edge-tts-switch input:checked+.edge-tts-slider{background:#4A90E2}
+        .edge-tts-switch input:checked+.edge-tts-slider:before{transform:translateX(20px)}
+        /* 朗读中当前段落文字变绿 */
+        .article-content p.tts-reading{color:#2E7D32!important;font-weight:600}
         #ttsSettingsButton{position:relative;color:inherit}
         #ttsSettingsButton:hover{transform:rotate(45deg);transition:transform .3s ease}
     </style>
@@ -363,8 +374,8 @@
     </script>
 
     <script src="/js/supabase-client.js"></script>
-    <script src="/js/app.js?v=20260810"></script>
-    <script src="/js/edge-tts.js?v=20260810"></script>
+    <script src="/js/app.js?v=20260811"></script>
+    <script src="/js/edge-tts.js?v=20260811"></script>
     <script type="text/javascript" src="/live2d/js/live2d.js"></script>
     <script type="text/javascript" src="/live2d/js/message.js"></script>
     <script type="text/javascript">

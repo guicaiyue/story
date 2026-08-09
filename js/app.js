@@ -946,6 +946,11 @@ async function loadStoryDetail(story) {
     } catch (error) {
         console.error('加载故事详情出错:', error);
     } finally {
+        // 预初始化前 1-2 段语音（Edge-TTS 渐进式加载：打开即合成，朗读时逐步加载后续段落）
+        if (window.EdgeTTS && typeof window.EdgeTTS.prepare === 'function') {
+            const ttsText = window.__storyVoiceText || '';
+            setTimeout(() => { window.EdgeTTS.prepare(ttsText); }, 300);
+        }
         // 隐藏加载遮罩
         hideLoading();
     }
