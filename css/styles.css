@@ -656,6 +656,63 @@ header {
     transition: color 0.2s ease;
 }
 
+/* 标题行（标题 + 列表页开始朗读按钮） */
+.card-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.card-title-row .card-title {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.card-read-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    padding: 5px 12px;
+    border: none;
+    border-radius: 16px;
+    background: rgba(74, 124, 247, 0.08);
+    color: var(--primary-color);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.card-read-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.card-read-btn i {
+    font-size: 12px;
+    line-height: 1;
+}
+
+.card-read-btn.loading {
+    background: rgba(74, 124, 247, 0.12);
+    cursor: default;
+}
+
+.card-read-btn.playing {
+    background: #ff6b6b;
+    color: #fff;
+}
+
+.card-read-btn.playing:hover {
+    background: #e55a5a;
+}
+
 .content-card:hover .card-title {
     color: var(--primary-color);
 }

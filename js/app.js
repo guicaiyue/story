@@ -705,7 +705,12 @@ function renderStories(append = false, keepPosition = false) {
 
                     <div class="card-info">
                         <div class="card-category">${story.category_name}</div>
-                        <div class="card-title">${story.title}</div>
+                        <div class="card-title-row">
+                            <div class="card-title">${story.title}</div>
+                            <button class="card-read-btn" data-story-id="${story.id}" title="开始朗读" onclick="event.stopPropagation();playStoryFromList(${story.id}, this)">
+                                <i class="fas fa-volume-up"></i><span>开始朗读</span>
+                            </button>
+                        </div>
                         <div class="card-excerpt">${story.excerpt}</div>
                         <div class="card-meta">
                             <div class="account-name">${story.category_name}</div>
@@ -737,7 +742,12 @@ function renderStories(append = false, keepPosition = false) {
                         </div>
                     </div>
                     <div class="card-info">
-                        <div class="card-title">${story.title}</div>
+                        <div class="card-title-row">
+                            <div class="card-title">${story.title}</div>
+                            <button class="card-read-btn" data-story-id="${story.id}" title="开始朗读" onclick="event.stopPropagation();playStoryFromList(${story.id}, this)">
+                                <i class="fas fa-volume-up"></i><span>开始朗读</span>
+                            </button>
+                        </div>
                         <div class="card-meta">
                             <div class="account-name">${story.category_name}</div>
                             <div class="card-stats">
@@ -1559,6 +1569,9 @@ function ttsReplay() {
 }
 
 // 更新TTS按钮状态（同步 ttsState 供防重判断）
+// ===== 列表页朗读状态（不进入详情页直接听故事）=====
+const listReadState = { storyId: null };
+
 function updateTTSButton(state) {
     const playButton = elements.ttsPlayButton;
     const playIcon = playButton.querySelector('.play-icon');
@@ -1599,6 +1612,21 @@ function updateTTSButton(state) {
             ttsState.isLoading = false;
             break;
     }
+
+    // ===== 列表页朗读按钮状态同步 =====
+    if (listReadState.storyId !== null) {
+        const btn = document.querySelector(`.card-read-btn[data-story-id="${listReadState.storyId}"]`);
+        if (btn) {
+            if (state === 'playing' || state === 'loading' || state === 'paused') {
+                setListReadBtn(btn, 'playing');
+            } else {
+                setListReadBtn(btn, 'idle');
+                listReadState.storyId = null;
+            }
+        } else {
+            listReadState.storyId = null;
+        }
+    }
 }
 
 // 当切换到新故事时重置TTS状态
@@ -1607,4 +1635,64 @@ function resetTTSState() {
     ttsState.currentText = '';
     ttsState.currentPosition = 0;
     updateTTSButton('stopped');
+}
+// 列表页朗读按钮状态切换
+function setListReadBtn(btn, state) {
+    if (!btn) return;
+    const icon = btn.querySelector('i');
+    const span = btn.querySelector('span');
+    btn.classList.remove('playing', 'loading');
+    if (state === 'playing') {
+        btn.classList.add('playing');
+        btn.title = '停止朗读';
+        if (icon) icon.className = 'fas fa-stop';
+        if (span) span.textContent = '停止朗读';
+    } else if (state === 'loading') {
+        btn.classList.add('loading');
+        btn.title = '朗读准备中';
+        if (icon) icon.className = 'fas fa-spinner fa-spin';
+        if (span) span.textContent = '准备中…';
+    } else {
+        btn.title = '开始朗读';
+        if (icon) icon.className = 'fas fa-volume-up';
+        if (span) span.textContent = '开始朗读';
+    }
+}
+
+// 列表页直接朗读（不进入详情页）：拉取正文 → Edge-TTS 播放
+async function playStoryFromList(storyId, btn) {
+    if (!window.EdgeTTS) {
+        showToast('语音引擎未加载，请刷新页面', 'error');
+        return;
+    }
+    const engineBusy = EdgeTTS.isPlaying() || EdgeTTS.isPaused() || (EdgeTTS._state && EdgeTTS._state.starting);
+    // 防重：正在朗读该故事 → 点击停止
+    if (listReadState.storyId === storyId && engineBusy) {
+        EdgeTTS.stop();
+        return; // updateTTSButton('stopped') 会恢复按钮
+    }
+    // 正在朗读其他故事 → 先停旧的
+    if (engineBusy) {
+        EdgeTTS.stop();
+    }
+    // 拉取正文（语音版本优先）
+    try {
+        const options = { filter: { story_id: storyId } };
+        const { data, error } = await window.supabaseClient.fetchData('story_content', options);
+        const row = data && data[0];
+        const ttsText = (row && (row.voice_content || row.content)) || '';
+        if (!ttsText) {
+            showToast('没有可朗读的内容', 'warning');
+            return;
+        }
+        listReadState.storyId = storyId;
+        setListReadBtn(btn, 'loading');
+        EdgeTTS.start(ttsText, {
+            onLoading: () => { showToast('朗读准备中，请稍候…', 'success', 'top'); }
+        });
+    } catch (e) {
+        console.error('列表朗读失败:', e);
+        showToast('朗读失败，请稍后再试', 'error');
+        setListReadBtn(btn, 'idle');
+    }
 }
