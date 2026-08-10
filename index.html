@@ -113,6 +113,11 @@
     <script src="/js/supabase.js"></script>
     <script src="/js/jquery.min.js"></script>
     <script defer src="https://cloud.umami.is/script.js" data-website-id="9ff3dec1-fc8a-41cd-8de1-84e40212d86b"></script>
+    <!-- PageSpy 远程调试（2026-08-11 接入；api 自动从 script src 推导 pagespy.xirizhi.cn） -->
+    <script src="https://pagespy.xirizhi.cn/page-spy/index.min.js"></script>
+    <script>
+        window.$pageSpy = new PageSpy({ project: 'story' });
+    </script>
 </head>
 <body>
     <!-- SEO隐藏内容区域 - 供搜索引擎抓取 -->
