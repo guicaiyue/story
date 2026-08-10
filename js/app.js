@@ -518,6 +518,7 @@ async function loadCategories() {
         const { data, error } = await window.supabaseClient.fetchData('story_category',options);
         if (error) {
             console.error('查询Supabase数据出错:', error);
+            hideLoading();
             return null;
         }
 
@@ -826,6 +827,7 @@ async function loadStories(append = false) {
         const { data, error } = await window.supabaseClient.fetchData('story_main',options);
         if (error) {
             console.error('查询Supabase数据出错:', error);
+            hideLoading();
             return null;
         }
 

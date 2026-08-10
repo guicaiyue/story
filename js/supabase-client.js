@@ -60,8 +60,10 @@ async function fetchData(tableName, options = {}) {
         .range((page - 1) * pageSize, page * pageSize - 1);
     }
 
-    // 执行查询
-    const { data, error } = await query;
+    // 执行查询（加 20s 超时兜底：网络挂起时也要能返回错误，避免遮罩永久不消失）
+    const timeoutMs = options.timeout || 20000;
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), timeoutMs));
+    const { data, error } = await Promise.race([query, timeoutPromise]);
 
     if (error) {
       throw error;
