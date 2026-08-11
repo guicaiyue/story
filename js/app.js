@@ -108,9 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 刷新按钮
     elements.refreshButton.addEventListener('click', refreshHome);
 
-    // PageSpy 站长支援（悬浮按钮已隐藏；点击提示联系站长并提供 Device ID 与 project）
+    // PageSpy 站长支援（悬浮按钮已隐藏；点击提示联系站长并提供 Device ID 与 project，下拉由冒泡到 multiFunctionButton 收起）
     elements.pageSpyToggle.addEventListener('click', () => {
-        toggleFunctionDropdown(); // 收起下拉
         const deviceId = (window.$pageSpy && window.$pageSpy.address) ? window.$pageSpy.address : '--';
         const old = document.getElementById('webmasterSupportModal');
         if (old) old.remove();
