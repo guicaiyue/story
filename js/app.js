@@ -108,11 +108,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // 刷新按钮
     elements.refreshButton.addEventListener('click', refreshHome);
 
-    // PageSpy 远程调试（悬浮按钮已隐藏，从基础功能菜单打开调试面板）
+    // PageSpy 站长支援（悬浮按钮已隐藏；点击提示联系站长并提供 Device ID 与 project）
     elements.pageSpyToggle.addEventListener('click', () => {
-        const logo = document.querySelector('#__pageSpy .page-spy-logo');
-        if (logo) logo.click();
-        toggleFunctionDropdown(); // 打开面板后收起下拉
+        toggleFunctionDropdown(); // 收起下拉
+        const deviceId = (window.$pageSpy && window.$pageSpy.address) ? window.$pageSpy.address : '--';
+        const old = document.getElementById('webmasterSupportModal');
+        if (old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'webmasterSupportModal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+        modal.innerHTML = `
+            <div style="background:var(--surface-color,#fff);border-radius:14px;width:min(400px,92vw);padding:22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+                <h3 style="margin:0 0 8px;font-size:17px;font-weight:600;color:var(--text-primary,#333)">站长支援</h3>
+                <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:var(--text-secondary,#555)">如需远程协助，请联系站长并提供以下信息：</p>
+                <div style="background:rgba(0,0,0,.045);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--text-primary,#333)">
+                    <p style="margin:0 0 6px">Device ID：<b style="font-family:Monaco,Consolas,monospace;color:var(--primary-dark,#C23870)">${deviceId}</b></p>
+                    <p style="margin:0">Project：<b style="font-family:Monaco,Consolas,monospace;color:var(--primary-dark,#C23870)">story</b></p>
+                </div>
+                <div style="margin-top:16px;text-align:right">
+                    <button id="webmasterSupportClose" style="background:var(--primary-color,#E8598F);color:#fff;border:none;border-radius:8px;padding:8px 22px;font-size:14px;cursor:pointer">知道了</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.id === 'webmasterSupportClose') modal.remove();
+        });
     });
 
     // 搜索按钮和关闭按钮
