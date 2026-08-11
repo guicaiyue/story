@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.pageSpyToggle.addEventListener('click', () => {
         const logo = document.querySelector('#__pageSpy .page-spy-logo');
         if (logo) logo.click();
+        toggleFunctionDropdown(); // 打开面板后收起下拉
     });
 
     // 搜索按钮和关闭按钮
