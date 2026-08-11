@@ -40,6 +40,7 @@ const elements = {
     themeToggle: document.getElementById('themeToggle'),
     viewModeToggle: document.getElementById('viewModeToggle'),
     refreshButton: document.getElementById('refreshButton'),
+    pageSpyToggle: document.getElementById('pageSpyToggle'),
     searchButton: document.getElementById('searchButton'),
     floatingSearch: document.getElementById('floatingSearch'),
     searchClose: document.getElementById('searchClose'),
@@ -106,6 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 刷新按钮
     elements.refreshButton.addEventListener('click', refreshHome);
+
+    // PageSpy 远程调试（悬浮按钮已隐藏，从基础功能菜单打开调试面板）
+    elements.pageSpyToggle.addEventListener('click', () => {
+        const logo = document.querySelector('#__pageSpy .page-spy-logo');
+        if (logo) logo.click();
+    });
 
     // 搜索按钮和关闭按钮
     elements.searchButton.addEventListener('click', toggleSearchBox);

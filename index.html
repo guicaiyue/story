@@ -118,6 +118,10 @@
     <script>
         window.$pageSpy = new PageSpy({ project: 'story' });
     </script>
+    <style>
+        /* 隐藏 PageSpy 悬浮调试按钮（入口移入侧边栏"基础功能"→"远程调试"） */
+        #__pageSpy .page-spy-logo { display: none !important; }
+    </style>
 </head>
 <body>
     <!-- SEO隐藏内容区域 - 供搜索引擎抓取 -->
@@ -182,6 +186,10 @@
                         <div class="function-item" id="refreshButton">
                             <i class="fas fa-sync-alt"></i>
                             <span>重置刷新</span>
+                        </div>
+                        <div class="function-item" id="pageSpyToggle">
+                            <i class="fas fa-bug"></i>
+                            <span>远程调试</span>
                         </div>
                     </div>
                 </div>
@@ -389,7 +397,7 @@
     </script>
 
     <script src="/js/supabase-client.js?v=20260817"></script>
-    <script src="/js/app.js?v=20260817"></script>
+    <script src="/js/app.js?v=20260818"></script>
     <script src="/js/edge-tts.js?v=20260814"></script>
     <script type="text/javascript" src="/live2d/js/live2d.js"></script>
     <script type="text/javascript" src="/live2d/js/message.js"></script>
