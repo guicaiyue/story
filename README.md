@@ -8,7 +8,7 @@
 - 数据 API：独立、无鉴权的 pREST 服务；当前网页客户端仅执行 Story PostgreSQL 查询。
 - API 基址：`https://story-api.xirizhi.cn/story/public`。
 - 前端适配器：`js/prest-client.js`，将页面查询转换为 pREST 的筛选、模糊搜索、排序与分页参数。
-- 不再依赖 Supabase SDK、PostgREST、JWT 或匿名密钥。
+- 当前数据 API 无需客户端密钥。
 
 ## 测试
 
