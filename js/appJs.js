@@ -108,7 +108,7 @@ async function loadCategories() {
             orderBy: { column: 'sort_id', ascending: false }
         };
 
-        const { data, error } = await window.supabaseClient.fetchData('story_category', options);
+        const { data, error } = await window.prestClient.fetchData('story_category', options);
 
         if (error) throw error;
         
@@ -180,7 +180,7 @@ async function loadStories(append = false) {
             options.filter = {category_id:appState.activeCategoryId}
         }
 
-        const { data, error } = await window.supabaseClient.fetchData('story_main', options);
+        const { data, error } = await window.prestClient.fetchData('story_main', options);
 
         if (error) throw error;
 
@@ -246,7 +246,7 @@ async function openStoryDetail(story) {
             filter: { story_id: story.id }
         };
 
-        const { data, error } = await window.supabaseClient.fetchData('story_content', options);
+        const { data, error } = await window.prestClient.fetchData('story_content', options);
 
         if (error) throw error;
 

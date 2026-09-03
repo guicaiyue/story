@@ -541,10 +541,10 @@ async function loadCategories() {
             orderBy:{column:'sort_id',ascending:false}
         }
 
-        // 直接调用window.supabaseClient中的方法
-        const { data, error } = await window.supabaseClient.fetchData('story_category',options);
+        // 直接调用window.prestClient中的方法
+        const { data, error } = await window.prestClient.fetchData('story_category',options);
         if (error) {
-            console.error('查询Supabase数据出错:', error);
+            console.error('查询pREST 数据出错:', error);
             hideLoading();
             return null;
         }
@@ -600,7 +600,7 @@ async function handleRoute() {
     if (match) {
         const storyId = parseInt(match[1], 10);
         try {
-            const { data, error } = await window.supabaseClient.fetchData('story_main', { filter: { id: storyId } });
+            const { data, error } = await window.prestClient.fetchData('story_main', { filter: { id: storyId } });
             if (data && data.length > 0) {
                 await loadStoryDetail(data[0]);
             } else {
@@ -861,9 +861,9 @@ async function loadStories(append = false) {
             options.filterLike = {title:currentState.searchKeyword};
         }
 
-        const { data, error } = await window.supabaseClient.fetchData('story_main',options);
+        const { data, error } = await window.prestClient.fetchData('story_main',options);
         if (error) {
-            console.error('查询Supabase数据出错:', error);
+            console.error('查询pREST 数据出错:', error);
             hideLoading();
             return null;
         }
@@ -956,7 +956,7 @@ async function loadStoryDetail(story) {
 
     try {
         const options = {filter:{story_id:story.id}}
-        const { data, error } = await window.supabaseClient.fetchData('story_content',options);
+        const { data, error } = await window.prestClient.fetchData('story_content',options);
         if (data) {
             const newData =  data[0];
             // 语音版本优先：未来 story_content 表若新增 voice_content 字段（带指令），TTS 自动优先读取
@@ -1705,7 +1705,7 @@ async function playStoryFromList(storyId, btn) {
     // 拉取正文（语音版本优先）
     try {
         const options = { filter: { story_id: storyId } };
-        const { data, error } = await window.supabaseClient.fetchData('story_content', options);
+        const { data, error } = await window.prestClient.fetchData('story_content', options);
         const row = data && data[0];
         const ttsText = (row && (row.voice_content || row.content)) || '';
         if (!ttsText) {
