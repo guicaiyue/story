@@ -327,12 +327,38 @@
         audioCache: {},   // 已播放/已合成段落缓存 {idx: {audio, blobUrl}}——自然播完/暂停/停止均保留，仅 prepare(换文)时清空，避免重复合成
         previewAudio: null,  // 试听播放
         previewBlobUrl: null,
-        onStateChange: null
+        onStateChange: null,
+        onStarted: null,
+        onComplete: null,
+        startedNotified: false,
+        playbackHadError: false
     };
 
     function setButtonState(s) {
         if (typeof window.updateTTSButton === 'function') window.updateTTSButton(s);
         if (state.onStateChange) state.onStateChange(s);
+    }
+
+    function configurePlaybackCallbacks(callbacks, allowComplete) {
+        state.onStarted = callbacks && typeof callbacks.onStarted === 'function' ? callbacks.onStarted : null;
+        state.onComplete = allowComplete && callbacks && typeof callbacks.onComplete === 'function' ? callbacks.onComplete : null;
+        state.startedNotified = false;
+        state.playbackHadError = false;
+    }
+
+    function clearPlaybackCallbacks() {
+        state.onStarted = null;
+        state.onComplete = null;
+        state.startedNotified = false;
+        state.playbackHadError = false;
+    }
+
+    function notifyStarted() {
+        if (state.startedNotified) return;
+        state.startedNotified = true;
+        if (state.onStarted) {
+            try { state.onStarted(); } catch (e) { console.error('Edge-TTS onStarted 回调失败:', e); }
+        }
     }
 
     function getSegments(text) {
@@ -355,8 +381,12 @@
     }
 
     async function playSegment(idx, single) {
-        if (state.stopRequested || idx >= state.segments.length) {
-            finishPlayback();
+        if (state.stopRequested) {
+            finishPlayback(false);
+            return;
+        }
+        if (idx >= state.segments.length) {
+            finishPlayback(true);
             return;
         }
         state.currentIndex = idx;
@@ -386,7 +416,11 @@
                 // 4) 现场合成
                 setParaStatus(idx, 'loading');
                 const b = await synthForIndex(idx);
-                if (!b) { playSegment(idx + 1, single); return; }
+                if (!b) {
+                    state.playbackHadError = true;
+                    playSegment(idx + 1, single);
+                    return;
+                }
                 blobUrl = URL.createObjectURL(b);
                 audio = new Audio(blobUrl);
                 state.audioCache[idx] = { audio, blobUrl };
@@ -406,16 +440,23 @@
                 }
             };
             audio.onerror = () => {
+                state.playbackHadError = true;
                 showToast && showToast('语音播放出错，跳过本段', 'error');
                 playSegment(idx + 1, single);
             };
             await audio.play();
+            if (state.stopRequested || state.currentAudio !== audio) {
+                try { audio.pause(); } catch (e) { /* ignore */ }
+                return;
+            }
             state.starting = false;   // 第一段真正开始朗读，退出加载阶段
             state.playing = true;
             state.paused = false;
             state.paragraphStartingIndex = -1;
             setButtonState('playing');
+            notifyStarted();
         } catch (e) {
+            state.playbackHadError = true;
             console.error('Edge-TTS 播放失败:', e);
             if (!state.stopRequested) {
                 if (e && (e.name === 'NotAllowedError' || /user didn't interact/.test(e.message || ''))) {
@@ -424,7 +465,7 @@
                     showToast && showToast('语音合成失败：' + e.message, 'error');
                 }
             }
-            finishPlayback();
+            finishPlayback(false);
         }
     }
 
@@ -500,6 +541,7 @@
     // 页面打开预初始化：合成前 1-3 段（不播放），start 时优先使用
     async function prepare(text) {
         state.stopRequested = true;
+        clearPlaybackCallbacks();
         clearAllCaches();
         highlightClear();
         state.playing = false;
@@ -520,8 +562,10 @@
         }
     }
 
-    // 全文/单段自然播完（不清缓存，段落图标保留 ready 可再播）
-    function finishPlayback() {
+    // 全文/单段播完（仅全文已开始、无错误且自然结束时通知完成）
+    function finishPlayback(naturalCompletion = false) {
+        const onComplete = state.onComplete;
+        const shouldNotifyComplete = naturalCompletion && state.startedNotified && !state.playbackHadError && typeof onComplete === 'function';
         if (state.currentAudio) { try { state.currentAudio.pause(); } catch (e) { /* ignore */ } }
         state.currentAudio = null;
         state.currentBlobUrl = null; // 不 revoke（audioCache 中仍被 Audio 对象持有）
@@ -532,6 +576,10 @@
         state.singleMode = false;
         state.paragraphStartingIndex = -1;
         setButtonState('stopped');
+        clearPlaybackCallbacks();
+        if (shouldNotifyComplete) {
+            try { onComplete(); } catch (e) { console.error('Edge-TTS onComplete 回调失败:', e); }
+        }
     }
     // 单段播放完成：仅停止，缓存保留
     function singleParagraphFinished(idx) {
@@ -546,6 +594,7 @@
         setParaStatus(-1, '');
         setParaStatus(idx, 'ready');
         setButtonState('stopped');
+        clearPlaybackCallbacks();
     }
     // 立即暂停当前播放（不清理缓存；段落播放用）
     function haltPlayback() {
@@ -563,14 +612,16 @@
         state.paragraphStartingIndex = -1;
         highlightClear();
         setButtonState('stopped');
+        clearPlaybackCallbacks();
     }
     // 点击段落图标：单段播放（防重；全文/他段在播先暂停）
-    async function playParagraph(idx) {
+    async function playParagraph(idx, callbacks) {
         if (!state.segments || idx >= state.segments.length) return;
         // 防重：该段正在播放或正在合成
         if (state.singleMode && (state.playing && state.currentIndex === idx || state.starting && state.paragraphStartingIndex === idx)) return;
-        // 全文朗读或其他段播放中 → 先暂停（不清缓存）
-        if (state.playing || state.starting) haltPlayback();
+        // 全文朗读或其他段播放中/暂停中 → 先停止当前会话（不清缓存）
+        if (state.playing || state.starting || state.paused) haltPlayback();
+        configurePlaybackCallbacks(callbacks, false);
         state.stopRequested = false;
         state.singleMode = true;
         state.paragraphStartingIndex = idx;
@@ -615,6 +666,7 @@
         start(text, callbacks) {
             // 防重：已在播放或加载中，忽略重复点击（避免声音重叠）
             if (state.playing || state.starting) return;
+            configurePlaybackCallbacks(callbacks, true);
             state.stopRequested = false;
             state.paused = false;
             state.starting = true;
@@ -623,6 +675,7 @@
             state.segments = getSegments(text || '');
             if (state.segments.length === 0) {
                 state.starting = false;
+                clearPlaybackCallbacks();
                 showToast && showToast('没有可朗读的内容', 'warning');
                 return;
             }

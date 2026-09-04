@@ -14,6 +14,8 @@ let currentState = {
     isLoading: false,   // 是否正在加载数据
     hasMoreData: true,   // 是否还有更多数据
     isSimpleMode: false,  // 是否为简约模式
+    currentStory: null, // 当前详情页故事，供故事级播放统计使用
+    currentStorySource: 'unknown',
     welcomeMsg:['欢迎来到《小故事铺》这里藏着一段段温暖的小故事，等你慢慢翻阅，慢慢收藏，和我们一起，在文字里遇见生活的温度',
                 '欢迎光临《小故事铺》✨ 星光为笔，梦境作纸，每个故事，都藏着属于你的奇遇',
                 '欢迎来到小故事铺 这里的故事都在等你翻开',
@@ -153,7 +155,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const p = icon.closest('p');
         if (!p || !window.EdgeTTS || typeof window.EdgeTTS.playParagraph !== 'function') return;
         const idx = Array.prototype.indexOf.call(elements.storyContent.children, p);
-        if (idx >= 0) window.EdgeTTS.playParagraph(idx);
+        if (idx >= 0) {
+            window.EdgeTTS.playParagraph(idx, {
+                onStarted: () => {
+                    if (window.StoryAnalytics) {
+                        window.StoryAnalytics.trackStory(
+                            'tts_paragraph',
+                            currentState.currentStory,
+                            currentState.currentStorySource,
+                            { paragraph_index: idx + 1 }
+                        );
+                    }
+                }
+            });
+        }
     });
 
     // 点击设置弹窗背景关闭弹窗
@@ -602,7 +617,7 @@ async function handleRoute() {
         try {
             const { data, error } = await window.prestClient.fetchData('story_main', { filter: { id: storyId } });
             if (data && data.length > 0) {
-                await loadStoryDetail(data[0]);
+                await loadStoryDetail(data[0], 'route');
             } else {
                 console.error('未找到故事 id=' + storyId, error);
             }
@@ -728,7 +743,7 @@ function renderStories(append = false, keepPosition = false) {
         if (currentState.isSimpleMode) {
             // 简约模式卡片
             html += `
-                <div class="content-card" onclick="loadStoryDetail(${JSON.stringify(story).replace(/\"/g, "'")})">
+                <div class="content-card" onclick="loadStoryDetail(${JSON.stringify(story).replace(/\"/g, "'")}, 'card')">
 
                     <div class="card-info">
                         <div class="card-category">${story.category_name}</div>
@@ -751,7 +766,7 @@ function renderStories(append = false, keepPosition = false) {
         } else {
             // 图片模式卡片 (原有样式)
             html += `
-                <div class="content-card" onclick="loadStoryDetail(${JSON.stringify(story).replace(/\"/g, "'")})">
+                <div class="content-card" onclick="loadStoryDetail(${JSON.stringify(story).replace(/\"/g, "'")}, 'card')">
                     <div class="card-category">${story.category_name}</div>
                     <div class="card-thumbnail">
                         <div class="card-placeholder-sketch">
@@ -941,7 +956,7 @@ async function loadStories(append = false) {
 }
 
 // 加载故事详情
-async function loadStoryDetail(story) {
+async function loadStoryDetail(story, source = 'card') {
     // 路由支持：更新 URL 为文章路径
     const storyPath = '/story/' + story.id;
     if (window.location.pathname !== storyPath) {
@@ -969,8 +984,13 @@ async function loadStoryDetail(story) {
             const paragraphs = newData.content.split('\n').filter(p => p.trim() !== '');
             elements.storyContent.innerHTML = '';
 
-            // 显示故事详情页面
+            // 显示故事详情页面并记录故事级打开事件（仅内容成功加载后上报）
+            currentState.currentStory = story;
+            currentState.currentStorySource = source;
             showArticle();
+            if (window.StoryAnalytics) {
+                window.StoryAnalytics.trackStory('story_open', story, source);
+            }
 
             // 延迟动态加载段落，创建阅读效果
             paragraphs.forEach((paragraph, index) => {
@@ -1516,6 +1536,22 @@ function getRandomInt() {
     return Math.floor(Math.random() * 7);
 }
 
+// 创建全文朗读统计回调：开始事件只在音频真实播放后触发，完成事件只由 EdgeTTS 自然结束触发
+function createTTSTrackingCallbacks(story, source, startEvent = 'tts_play') {
+    return {
+        onStarted: () => {
+            if (window.StoryAnalytics) {
+                window.StoryAnalytics.trackStory(startEvent, story, source);
+            }
+        },
+        onComplete: () => {
+            if (window.StoryAnalytics) {
+                window.StoryAnalytics.trackStory('tts_complete', story, source);
+            }
+        }
+    };
+}
+
 // TTS语音朗读相关变量（Edge-TTS 引擎驱动，核心实现见 js/edge-tts.js）
 let ttsState = {
     isPlaying: false,
@@ -1553,7 +1589,7 @@ function ttsPlay() {
 }
 
 // 开始TTS播放（Edge-TTS 引擎，按换行分段逐段合成播放）
-function ttsStart() {
+function ttsStart(startEvent = 'tts_play') {
     if (!window.EdgeTTS) {
         showToast('语音引擎未加载，请刷新页面', 'error');
         return;
@@ -1566,9 +1602,13 @@ function ttsStart() {
         }
     }
     // 顶部绿色提示：仅真正进入朗读加载阶段时显示（语音准备中）
-    EdgeTTS.start(ttsState.currentText, {
-        onLoading: () => showToast('朗读准备中，请稍候…', 'success', 'top')
-    });
+    const trackingCallbacks = createTTSTrackingCallbacks(
+        currentState.currentStory,
+        currentState.currentStorySource,
+        startEvent
+    );
+    trackingCallbacks.onLoading = () => showToast('朗读准备中，请稍候…', 'success', 'top');
+    EdgeTTS.start(ttsState.currentText, trackingCallbacks);
 }
 
 // 暂停TTS播放
@@ -1591,7 +1631,7 @@ function ttsReplay() {
     ttsStop();
     ttsState.currentText = '';
     setTimeout(() => {
-        ttsStart();
+        ttsStart('tts_replay');
     }, 100);
 }
 
@@ -1714,9 +1754,10 @@ async function playStoryFromList(storyId, btn) {
         }
         listReadState.storyId = storyId;
         setListReadBtn(btn, 'loading');
-        EdgeTTS.start(ttsText, {
-            onLoading: () => { showToast('朗读准备中，请稍候…', 'success', 'top'); }
-        });
+        const story = currentState.stories.find(item => Number(item.id) === Number(storyId)) || { id: storyId };
+        const trackingCallbacks = createTTSTrackingCallbacks(story, 'list', 'tts_play');
+        trackingCallbacks.onLoading = () => { showToast('朗读准备中，请稍候…', 'success', 'top'); };
+        EdgeTTS.start(ttsText, trackingCallbacks);
     } catch (e) {
         console.error('列表朗读失败:', e);
         showToast('朗读失败，请稍后再试', 'error');
