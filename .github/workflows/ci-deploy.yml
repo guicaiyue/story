@@ -18,6 +18,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Run contract tests
+        run: |
+          node test-umami-tracker.js
+          node test-prest-client.js
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
