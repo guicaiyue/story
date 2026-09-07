@@ -1,50 +1,59 @@
 :root {
-    --primary-color: #E8598F;
-    --primary-light: #F5A8C6;
-    --primary-dark: #C23870;
-    --accent-color: #EC8C69;
-    --accent-light: #FBD0C2;
-    --gradient-candy: linear-gradient(135deg, #ED6EA0 0%, #EC8C69 100%);
-    --gradient-candy-soft: linear-gradient(135deg, rgba(237, 110, 160, 0.14) 0%, rgba(236, 140, 105, 0.14) 100%);
-    --background-color: #F8F8F8;
+    /* 阅读页：暖中性色只用于层级与操作，不再以高饱和渐变抢占内容。 */
+    --primary-color: #7A4E3B;
+    --primary-light: #8F5F4B;
+    --primary-dark: #57392D;
+    --primary-rgb: 122, 78, 59;
+    --primary-soft: #F3EAE4;
+    --accent-color: #8A5A43;
+    --accent-light: #E8D8CE;
+    --accent-dark: #6F4533;
+    --accent-rgb: 138, 90, 67;
+    --brand-color: var(--primary-color);
+    --brand-soft: var(--primary-soft);
+    --background-color: #FCFBF8;
     --surface-color: #FFFFFF;
-    --text-primary: #0F172A;
-    --text-secondary: #475569;
-    --text-hint: #64748B;
+    --text-primary: #2B2420;
+    --text-secondary: #625851;
+    --text-hint: #82766E;
     --text-on-primary: #FFFFFF;
-    --border-color: #E2E8F0;
-    --shadow-color: rgba(15, 23, 42, 0.08);
-    --card-shadow: 0 10px 30px -15px rgba(15, 23, 42, 0.12);
-    --hover-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.18);
+    --border-color: #E7DED8;
+    --shadow-color: rgba(43, 36, 32, 0.08);
+    --card-shadow: 0 8px 24px -16px rgba(43, 36, 32, 0.14);
+    --hover-shadow: 0 14px 28px -18px rgba(43, 36, 32, 0.22);
     --card-radius: 14px;
     --button-radius: 999px;
     --transition-time: 0.3s;
-    --loading-color-1: #ED6EA0;
-    --loading-color-2: #EC8C69;
-    --loading-color-3: #F5A8C6;
-    --card-bg: #F1F5F9;
-    --skeleton-bg: #E2E8F0;
+    --loading-color-1: var(--primary-color);
+    --loading-color-2: var(--accent-color);
+    --loading-color-3: var(--accent-light);
+    --card-bg: #F7F3F0;
+    --skeleton-bg: #ECE4DF;
 }
 
 /* 暗色主题 */
 .dark-theme {
-    --primary-color: #F08BB5;
-    --primary-light: #F5A8C6;
-    --primary-dark: #E8598F;
-    --accent-color: #F0A288;
-    --accent-light: #C97A62;
-    --gradient-candy: linear-gradient(135deg, #ED6EA0 0%, #EC8C69 100%);
-    --gradient-candy-soft: linear-gradient(135deg, rgba(237, 110, 160, 0.18) 0%, rgba(236, 140, 105, 0.18) 100%);
-    --background-color: #0F172A;
-    --surface-color: #1E293B;
-    --text-primary: #F1F5F9;
-    --text-secondary: #CBD5E1;
-    --text-hint: #94A3B8;
-    --text-on-primary: #FFFFFF;
-    --border-color: #334155;
+    --primary-color: #D49A7A;
+    --primary-light: #E0B092;
+    --primary-dark: #B87A5D;
+    --primary-rgb: 212, 154, 122;
+    --primary-soft: #382D27;
+    --accent-color: #D49A7A;
+    --accent-light: #4B3930;
+    --accent-dark: #B87A5D;
+    --accent-rgb: 212, 154, 122;
+    --brand-color: var(--primary-color);
+    --brand-soft: var(--primary-soft);
+    --background-color: #1F1B18;
+    --surface-color: #2A2420;
+    --text-primary: #F7F0EB;
+    --text-secondary: #D7CCC4;
+    --text-hint: #AC9F97;
+    --text-on-primary: #241916;
+    --border-color: #493E38;
     --shadow-color: rgba(0, 0, 0, 0.35);
-    --card-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.5);
-    --hover-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+    --card-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.52);
+    --hover-shadow: 0 14px 28px -18px rgba(0, 0, 0, 0.66);
 }
 
 * {
@@ -139,7 +148,7 @@ header {
 .search-bar input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(232, 89, 143, 0.1);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
 .search-bar i {
@@ -178,7 +187,7 @@ header {
 }
 
 .nav-action-button:hover {
-    background-color: rgba(232, 89, 143, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
     transform: translateY(-2px);
 }
 
@@ -254,10 +263,10 @@ header {
 
 /* 选中状态 */
 .filter-tag.active {
-    background: #C23870;   /* 深色背景 */
+    background: var(--primary-dark);   /* 深色背景 */
     color: #fff;           /* 白色字体 */
     font-weight: bold;
-    box-shadow: 0 2px 8px rgba(232, 89, 143, 0.2);
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.2);
     transform: translateY(-2px);
 }
 
@@ -269,8 +278,8 @@ header {
 
 /* 悬停状态 */
 .filter-tag:hover {
-    background: rgba(237, 110, 160, 0.12);
-    color: #C23870;
+    background: rgba(var(--primary-rgb), 0.12);
+    color: var(--primary-dark);
     transform: translateY(-2px);
 }
 
@@ -301,7 +310,7 @@ header {
 .sort-options select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(232, 89, 143, 0.15);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
 }
 
 /* 内容卡片区域 */
@@ -427,14 +436,14 @@ header {
     position: absolute;
     width: 80px;
     height: 60px;
-    border: 2.5px solid #E8598F;
+    border: 2.5px solid var(--primary-color);
     border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
     transform: rotate(5deg);
     transition: transform var(--transition-time);
 }
 
 .dark-theme .sketch-animal::before {
-    border-color: #F08BB5;
+    border-color: var(--primary-color);
 }
 
 .sketch-animal::after {
@@ -445,12 +454,12 @@ header {
     width: 50px;
     height: 40px;
     border-radius: 50%;
-    background-color: rgba(245, 168, 198, 0.4);
+    background-color: rgba(var(--primary-rgb), 0.4);
     transform: translateX(-50%);
 }
 
 .dark-theme .sketch-animal::after {
-    background-color: rgba(245, 168, 198, 0.2);
+    background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .sketch-animal .ears {
@@ -466,7 +475,7 @@ header {
     content: "";
     width: 20px;
     height: 25px;
-    border: 2.5px solid #E8598F;
+    border: 2.5px solid var(--primary-color);
     border-bottom: 0;
     border-radius: 50% 50% 0 0;
     transform: rotate(-5deg);
@@ -475,7 +484,7 @@ header {
 
 .dark-theme .sketch-animal .ears::before,
 .dark-theme .sketch-animal .ears::after {
-    border-color: #F08BB5;
+    border-color: var(--primary-color);
 }
 
 .sketch-animal .ears::after {
@@ -498,12 +507,12 @@ header {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: #E8598F;
+    background-color: var(--primary-color);
 }
 
 .dark-theme .sketch-animal .eyes::before,
 .dark-theme .sketch-animal .eyes::after {
-    background-color: #F08BB5;
+    background-color: var(--primary-color);
 }
 
 .sketch-animal .nose {
@@ -512,12 +521,12 @@ header {
     width: 12px;
     height: 8px;
     border-radius: 50%;
-    background-color: #E8598F;
+    background-color: var(--primary-color);
     z-index: 1;
 }
 
 .dark-theme .sketch-animal .nose {
-    background-color: #F08BB5;
+    background-color: var(--primary-color);
 }
 
 .sketch-animal .mouth {
@@ -525,13 +534,13 @@ header {
     top: 45px;
     width: 14px;
     height: 7px;
-    border-bottom: 2.5px solid #E8598F;
+    border-bottom: 2.5px solid var(--primary-color);
     border-radius: 50%;
     z-index: 1;
 }
 
 .dark-theme .sketch-animal .mouth {
-    border-bottom-color: #F08BB5;
+    border-bottom-color: var(--primary-color);
 }
 
 .sketch-animal .whiskers {
@@ -547,13 +556,13 @@ header {
     content: "";
     width: 25px;
     height: 1.5px;
-    background-color: #E8598F;
+    background-color: var(--primary-color);
     transform: rotate(-15deg);
 }
 
 .dark-theme .sketch-animal .whiskers::before,
 .dark-theme .sketch-animal .whiskers::after {
-    background-color: #F08BB5;
+    background-color: var(--primary-color);
 }
 
 .sketch-animal .whiskers::after {
@@ -563,7 +572,7 @@ header {
 .sketch-text {
     margin-top: 12px;
     font-size: 12px;
-    color: #E8598F;
+    color: var(--primary-color);
     font-style: italic;
     font-family: 'MiSans', cursive, sans-serif;
     transform: rotate(-2deg);
@@ -576,7 +585,7 @@ header {
 }
 
 .dark-theme .sketch-text {
-    color: #F08BB5;
+    color: var(--primary-color);
 }
 
 /* 手绘风格的线条效果 */
@@ -587,13 +596,13 @@ header {
     left: 10%;
     width: 80%;
     height: 1px;
-    background-color: #E8598F;
+    background-color: var(--primary-color);
     opacity: 0.3;
     border-radius: 50%;
 }
 
 .dark-theme .sketch-text::before {
-    background-color: #F08BB5;
+    background-color: var(--primary-color);
 }
 
 .content-card:hover .card-placeholder-sketch {
@@ -684,7 +693,7 @@ header {
     padding: 5px 12px;
     border: none;
     border-radius: 16px;
-    background: rgba(237, 110, 160, 0.12);
+    background: rgba(var(--primary-rgb), 0.12);
     color: var(--primary-color);
     font-size: 12px;
     font-weight: 500;
@@ -704,17 +713,17 @@ header {
 }
 
 .card-read-btn.loading {
-    background: rgba(237, 110, 160, 0.2);
+    background: rgba(var(--primary-rgb), 0.2);
     cursor: default;
 }
 
 .card-read-btn.playing {
-    background: #ff6b6b;
+    background: var(--primary-dark);
     color: #fff;
 }
 
 .card-read-btn.playing:hover {
-    background: #e55a5a;
+    background: var(--primary-color);
 }
 
 .content-card:hover .card-title {
@@ -1341,7 +1350,7 @@ header {
     font-size: 16px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    box-shadow: 0 4px 12px rgba(232, 89, 143, 0.25);
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.25);
 }
 
 .no-result-action:hover {
@@ -1357,7 +1366,7 @@ header {
 /* 搜索框样式增强 */
 .search-bar.search-focus input {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(232, 89, 143, 0.15);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
     transform: translateY(-1px);
 }
 
@@ -1387,7 +1396,7 @@ header {
 .bottom-loading-spinner {
     width: 24px;
     height: 24px;
-    border: 3px solid rgba(232, 89, 143, 0.2);
+    border: 3px solid rgba(var(--primary-rgb), 0.2);
     border-top-color: var(--primary-color);
     border-radius: 50%;
     animation: spin 1s infinite linear;
@@ -1642,7 +1651,7 @@ input:focus, select:focus, button:focus {
 
 .floating-search .search-bar input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 8px 25px rgba(232, 89, 143, 0.15);
+    box-shadow: 0 8px 25px rgba(var(--primary-rgb), 0.15);
     transform: translateY(-2px);
     padding-left: 30px; /* 当输入框获得焦点时，减少左侧padding */
 }
@@ -1793,7 +1802,7 @@ input:focus, select:focus, button:focus {
 }
 
 .nav-action-button:hover {
-    background-color: rgba(232, 89, 143, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
     transform: translateY(-2px);
 }
 
@@ -1851,7 +1860,7 @@ input:focus, select:focus, button:focus {
 
 .floating-search .search-bar input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(232, 89, 143, 0.1);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1);
     outline: none;
 }
 
@@ -1888,7 +1897,7 @@ input:focus, select:focus, button:focus {
 }
 
 .search-close:hover {
-    background-color: rgba(232, 89, 143, 0.08);
+    background-color: rgba(var(--primary-rgb), 0.08);
     color: var(--primary-color);
     transform: rotate(90deg);
 }
@@ -1969,7 +1978,7 @@ input:focus, select:focus, button:focus {
 }
 
 .settings-close:hover {
-    background-color: rgba(232, 89, 143, 0.08);
+    background-color: rgba(var(--primary-rgb), 0.08);
     color: var(--primary-color);
     transform: rotate(90deg);
 }
@@ -2049,7 +2058,7 @@ input:focus, select:focus, button:focus {
 
 .category-item.selected {
     border-color: var(--primary-color);
-    background-color: rgba(232, 89, 143, 0.05);
+    background-color: rgba(var(--primary-rgb), 0.05);
 }
 
 .category-item.disabled {
@@ -2130,11 +2139,11 @@ input:focus, select:focus, button:focus {
     gap: 10px;
     padding: 12px 16px;
     border-radius: 12px;
-    background-color: rgba(232, 89, 143, 0.06);
-    color: #C23870;
+    background-color: rgba(var(--primary-rgb), 0.06);
+    color: var(--primary-dark);
     font-size: 14px;
     margin-bottom: 24px;
-    border: 1px solid rgba(232, 89, 143, 0.12);
+    border: 1px solid rgba(var(--primary-rgb), 0.12);
 }
 
 .category-limit-info.warning {
@@ -2206,7 +2215,7 @@ input:focus, select:focus, button:focus {
 }
 
 .dark-theme .category-item.selected {
-    background-color: rgba(232, 89, 143, 0.15);
+    background-color: rgba(var(--primary-rgb), 0.15);
     border-color: var(--primary-color);
 }
 
@@ -2252,12 +2261,12 @@ input:focus, select:focus, button:focus {
 
 /* 选择分类数量限制提示 */
 .category-limit-warning {
-    color: #EC8C69;
+    color: var(--accent-color);
     font-size: 13px;
     margin: 5px 0 20px;
     display: none;
     padding: 8px 12px;
-    background-color: rgba(236, 140, 105, 0.12);
+    background-color: rgba(var(--accent-rgb), 0.12);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -2460,8 +2469,8 @@ body.simple-mode .card-category {
     margin-bottom: 10px;
     font-size: 11px;
     padding: 3px 8px;
-    background-color: rgba(232, 89, 143, 0.12);
-    color: #C23870;
+    background-color: rgba(var(--primary-rgb), 0.12);
+    color: var(--primary-dark);
 }
 
 /* Toast通知样式 */
@@ -2672,7 +2681,7 @@ body.simple-mode .card-category {
 }
 
 .action-button:hover {
-    background-color: rgba(232, 89, 143, 0.08);
+    background-color: rgba(var(--primary-rgb), 0.08);
     transform: translateY(-2px);
 }
 
@@ -2909,7 +2918,7 @@ body.sidebar-collapsed .sidebar-toggle {
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-    background-color: rgba(232, 89, 143, 0.2);
+    background-color: rgba(var(--primary-rgb), 0.2);
     border-radius: 10px;
 }
 
@@ -2944,11 +2953,11 @@ body.sidebar-collapsed .sidebar-toggle {
 }
 
 .dark-theme .sidebar .filter-tag.active {
-    background-color: rgba(232, 89, 143, 0.2);
+    background-color: rgba(var(--primary-rgb), 0.2);
 }
 
 .dark-theme .sidebar .filter-tag:hover {
-    background-color: rgba(232, 89, 143, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
 }
 
 .dark-theme .sidebar-toggle {
@@ -3205,14 +3214,12 @@ header {
     border-radius: 50%;
 }
 
-
 /* ============================================================
-   WheelPage 糖果风格覆盖层（2026-08-11）
-   slate 中性 + 粉橙糖果渐变 #ED6EA0 → #EC8C69，儿童友好
-   仅视觉调整，不动布局与逻辑
+   WheelPage calm reading layer (2026-09-07)
+   Low-saturation warm neutrals keep colour for state and orientation only.
+   This layer is visual-only: layout and interaction behaviour remain unchanged.
    ============================================================ */
 
-/* 字体栈：MiSans 优先，系统栈兜底 */
 * {
     font-family: 'MiSans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
         'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue',
@@ -3224,27 +3231,16 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* ---------- 糖果渐变文字（品牌/标题，仅装饰性大字号） ---------- */
+/* Brand and headings use one quiet ink instead of decorative gradients. */
 .sidebar .logo,
-.logo {
-    background: var(--gradient-candy);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+.logo,
+.welcome-title {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: var(--primary-color);
     letter-spacing: -0.4px;
 }
 
-.welcome-title {
-    background: var(--gradient-candy);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    letter-spacing: -0.8px;
-}
-
-/* ---------- 大标题负字距（WheelPage h1 气质） ---------- */
 .welcome-title {
     font-size: 34px;
     font-weight: 800;
@@ -3254,40 +3250,40 @@ body {
     letter-spacing: -0.5px;
 }
 
-/* ---------- 分类标签胶囊化 ---------- */
+/* Categories retain a clear selected state without a glowing treatment. */
 .filter-tag {
     background: var(--card-bg);
     color: var(--text-secondary);
     border-radius: 999px;
     font-weight: 500;
-    transition: all 0.25s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .filter-tag:hover {
-    background: var(--gradient-candy-soft);
+    background: var(--primary-soft);
     color: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px -8px rgba(232, 89, 143, 0.4);
+    transform: translateY(-1px);
+    box-shadow: none;
+    animation: none;
 }
 
 .filter-tag.active {
-    background: var(--gradient-candy);
-    color: #fff;
+    background: var(--primary-color);
+    color: var(--text-on-primary);
     font-weight: 600;
-    box-shadow: 0 6px 16px -6px rgba(232, 89, 143, 0.5);
-    transform: translateY(-2px);
+    box-shadow: 0 3px 10px -7px rgba(var(--primary-rgb), 0.42);
+    transform: none;
 }
 
-/* ---------- 卡片：软阴影 + hover 轻浮起 ---------- */
 .content-card {
     border-radius: var(--card-radius);
     box-shadow: var(--card-shadow);
-    border: 1px solid rgba(226, 232, 240, 0.6);
+    border: 1px solid var(--border-color);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .content-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-2px);
     box-shadow: var(--hover-shadow);
 }
 
@@ -3297,61 +3293,61 @@ body {
 }
 
 .card-thumbnail {
-    background: linear-gradient(160deg, #FFF1F6 0%, #FFF6F0 100%);
+    background: var(--card-bg);
 }
 
 .card-placeholder-sketch {
-    background-color: #FFF8F9;
+    background-color: var(--primary-soft);
 }
 
-/* 分类角标：糖果浅底 */
 .card-category {
-    background-color: rgba(255, 255, 255, 0.92);
+    background-color: var(--surface-color);
     color: var(--primary-dark);
-    box-shadow: 0 2px 8px rgba(232, 89, 143, 0.18);
+    box-shadow: 0 2px 7px rgba(var(--primary-rgb), 0.13);
 }
 
-/* ---------- 朗读按钮：糖果渐变（默认浅色 → hover 渐变） ---------- */
+/* Reading controls use a quiet surface until explicitly hovered. */
 .card-read-btn {
-    background: var(--gradient-candy-soft);
+    background: var(--primary-soft);
     color: var(--primary-dark);
     border-radius: 999px;
     font-weight: 600;
 }
 
-.card-read-btn:hover {
-    background: var(--gradient-candy);
-    color: #fff;
-    box-shadow: 0 4px 12px -4px rgba(232, 89, 143, 0.55);
+.card-read-btn:hover,
+.card-read-btn.playing,
+.card-read-btn.playing:hover {
+    background: var(--primary-color);
+    color: var(--text-on-primary);
+    box-shadow: none;
+    animation: none;
 }
 
-/* ---------- 主操作按钮 ---------- */
+.card-read-btn.loading {
+    background: var(--primary-soft);
+}
+
 .settings-save {
-    background: var(--gradient-candy);
-    color: #fff;
+    background: var(--primary-color);
+    color: var(--text-on-primary);
     border: none;
-    box-shadow: 0 6px 16px -8px rgba(232, 89, 143, 0.5);
+    box-shadow: 0 3px 10px -7px rgba(var(--primary-rgb), 0.42);
 }
 
 .settings-save:hover {
-    background: var(--gradient-candy);
-    color: #fff;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px -8px rgba(232, 89, 143, 0.6);
+    background: var(--primary-dark);
 }
 
-/* ---------- 搜索框聚焦糖果环 ---------- */
 .search-bar input:focus,
 .floating-search .search-bar input:focus,
 .sort-options select:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(237, 110, 160, 0.18);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.16);
 }
 
-/* ---------- 侧边栏：白面 + 糖果 icon 点缀 ---------- */
 .sidebar {
     border-right: 1px solid var(--border-color);
-    box-shadow: 2px 0 16px -8px rgba(15, 23, 42, 0.1);
+    box-shadow: 2px 0 16px -10px var(--shadow-color);
 }
 
 .action-button {
@@ -3359,116 +3355,64 @@ body {
 }
 
 .action-button:hover {
-    background: var(--gradient-candy-soft);
+    background: var(--primary-soft);
 }
 
-/* ---------- 排序下拉 ---------- */
 .sort-options select {
     border-radius: 999px;
     background-color: var(--surface-color);
 }
 
-/* ---------- 骨架屏：糖果呼吸 ---------- */
-@keyframes skeleton-loading-candy {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.55; }
+/* Loading remains perceivable but no longer pulses through the whole card. */
+@keyframes skeleton-loading-calm {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 0.68; }
 }
 
 .content-card-skeleton {
-    animation: skeleton-loading-candy 1.5s ease-in-out infinite;
+    animation: skeleton-loading-calm 1.8s ease-in-out infinite;
 }
 
-/* ---------- 暗色主题微调 ---------- */
 .dark-theme .content-card {
-    border-color: rgba(148, 163, 184, 0.15);
+    border-color: var(--border-color);
 }
 
 .dark-theme .card-thumbnail {
-    background: linear-gradient(160deg, #2A1B2E 0%, #2E2A24 100%);
+    background: var(--card-bg);
 }
 
 .dark-theme .card-placeholder-sketch {
-    background-color: #27272A;
+    background-color: var(--primary-soft);
 }
 
-.dark-theme .card-category {
-    background-color: rgba(30, 41, 59, 0.92);
+.dark-theme .card-category,
+body.dark-theme.simple-mode .card-category {
+    background-color: var(--surface-color);
     color: var(--primary-light);
 }
 
-/* ============================================================
-   WheelPage 糖果风格 童趣微动效（2026-08-11）
-   纯 CSS，不依赖 JS，保持儿童友好可爱感
-   ============================================================ */
-
-/* 卡片 hover 时简笔画小动物轻轻摇摆 */
-.content-card:hover .sketch-animal {
-    animation: candy-wobble 0.6s ease-in-out;
+/* Sidebar categories need the same quiet but unambiguous state in both themes. */
+.sidebar .filter-tag:hover,
+.dark-theme .sidebar .filter-tag:hover {
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    transform: translateX(3px);
 }
 
-@keyframes candy-wobble {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-6deg); }
-    75% { transform: rotate(5deg); }
+.sidebar .filter-tag.active,
+.dark-theme .sidebar .filter-tag.active {
+    background: var(--primary-color);
+    color: var(--text-on-primary);
+    box-shadow: 0 3px 10px -7px rgba(var(--primary-rgb), 0.42);
+    transform: none;
 }
 
-/* 分类标签 hover 小弹跳 */
-.filter-tag:hover {
-    animation: candy-pop 0.35s ease;
-}
-
-@keyframes candy-pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-    100% { transform: scale(1); }
-}
-
-/* 朗读按钮播放中呼吸提示 */
-.card-read-btn.playing {
-    animation: candy-breathe 1.6s ease-in-out infinite;
-}
-
-@keyframes candy-breathe {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4); }
-    50% { box-shadow: 0 0 0 6px rgba(255, 107, 107, 0); }
-}
-
-/* 侧边栏 logo hover 摇一摇 */
-.sidebar .logo:hover .logo-img,
-.logo:hover .logo-img {
-    animation: candy-wave 0.5s ease-in-out;
-}
-
-@keyframes candy-wave {
-    0%, 100% { transform: rotate(0deg); }
-    30% { transform: rotate(-12deg); }
-    60% { transform: rotate(10deg); }
-}
-
-/* 卡片 hover 时分类角标上浮 */
-.content-card:hover .card-category {
-    transform: translateY(1px) scale(1.05);
-    box-shadow: 0 4px 12px -4px rgba(232, 89, 143, 0.35);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-/* ---------- 可读性微调（impeccable 回归后 2026-08-11） ---------- */
-
-/* 浅色主题下分类标签文字加深到可读范围（#E8598F 3.36:1 → #C23870 5.13:1） */
-.light-theme .filter-tag,
-body:not(.dark-theme) .filter-tag {
-    color: #C23870;
-}
-
-.light-theme .filter-tag.active,
-body:not(.dark-theme) .filter-tag.active {
-    color: #ffffff;
-}
-
-/* 暗色主题下分类角标文字提亮（#C23870 2.85:1 → #F08BB5 6.31:1）
-   注意：body.simple-mode .card-category(0,2,1) 会压过 .dark-theme(0,1,1)，
-   必须用 body.dark-theme.simple-mode 同特异性且靠后覆盖 */
-body.dark-theme .card-category,
-body.dark-theme.simple-mode .card-category {
-    color: #F08BB5;
+/* Respect readers who explicitly request reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    .content-card-skeleton,
+    .filter-tag:hover,
+    .card-read-btn.playing {
+        animation: none;
+        transition: none;
+    }
 }
