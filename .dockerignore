@@ -1,8 +1,10 @@
 .git
 .github
 .idea
-Dockerfile
-docker-compose.yaml
 .dockerignore
+Dockerfile
+README.md
+scripts
+test-*.js
 *.log
 .env
