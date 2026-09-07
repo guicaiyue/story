@@ -11,8 +11,14 @@ on:
 permissions:
   contents: read
 
+# Serialize image publication and deployment; never cancel an in-flight release.
+concurrency:
+  group: story-production-release
+  cancel-in-progress: false
+
 jobs:
   build-and-push:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -42,5 +48,43 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/story:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/story:latest
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger n8n Watchtower after image push
+        env:
+          WEBHOOK_URL: ${{ secrets.N8N_WATCHTOWER_WEBHOOK_URL }}
+          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/story
+        run: |
+          set -euo pipefail
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo '::error::Missing N8N_WATCHTOWER_WEBHOOK_URL secret'
+            exit 1
+          fi
+          payload=$(jq -nc --arg image "$IMAGE" '{image:$image}')
+          status=$(curl --silent --show-error --fail-with-body \
+            --connect-timeout 20 --max-time 180 \
+            -H 'Content-Type: application/json' --data "$payload" \
+            --output response.json --write-out '%{http_code}' "$WEBHOOK_URL")
+          if [ "$status" != 200 ] && [ "$status" != 202 ]; then
+            echo "::error::Unexpected webhook HTTP status: $status"
+            exit 1
+          fi
+          jq -e --arg image "$IMAGE" '.ok == true and .image == $image' response.json > /dev/null
+          {
+            echo '### Watchtower deployment request accepted'
+            echo "- Commit: $GITHUB_SHA"
+            echo "- Image: $IMAGE"
+            echo "- HTTP status: $status"
+            echo '- Acceptance (including queued/deduplicated responses) is not proof of production readiness.'
+            echo '- Verify the n8n execution, Watchtower update and running image revision separately.'
+          } >> "$GITHUB_STEP_SUMMARY"
