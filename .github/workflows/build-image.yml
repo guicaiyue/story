@@ -70,11 +70,19 @@ jobs:
             echo '::error::Missing N8N_WATCHTOWER_WEBHOOK_URL secret'
             exit 1
           fi
+          python3 -c 'import os; print("Webhook endpoint contract:", "PASS" if os.environ["WEBHOOK_URL"] == "https://n8n.xirizhi.cn/webhook/watchtower-check-image" else "MISMATCH")'
           payload=$(jq -nc --arg image "$IMAGE" '{image:$image}')
+          curl_rc=0
           status=$(curl --silent --show-error --fail-with-body \
             --connect-timeout 20 --max-time 180 \
             -H 'Content-Type: application/json' --data "$payload" \
-            --output response.json --write-out '%{http_code}' "$WEBHOOK_URL")
+            --dump-header response.headers \
+            --output response.json --write-out '%{http_code}' "$WEBHOOK_URL") || curl_rc=$?
+          if [ "$curl_rc" -ne 0 ]; then
+            echo "::error::Webhook transport failed: curl=$curl_rc HTTP=$status"
+            python3 -c 'import pathlib,json; h=pathlib.Path("response.headers").read_text(errors="replace") if pathlib.Path("response.headers").exists() else ""; b=pathlib.Path("response.json").read_text(errors="replace").lower() if pathlib.Path("response.json").exists() else ""; print(json.dumps({"headers":[l for l in h.splitlines() if l.lower().startswith(("http/","server:","content-type:","date:"))],"safeline_marker":"/.safeline/" in b,"challenge_marker":"challenge" in b}))'
+            exit "$curl_rc"
+          fi
           if [ "$status" != 200 ] && [ "$status" != 202 ]; then
             echo "::error::Unexpected webhook HTTP status: $status"
             exit 1
