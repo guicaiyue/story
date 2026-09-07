@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build Story Image
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-and-push:

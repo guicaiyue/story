@@ -1,9 +1,6 @@
 services:
   story:
     image: ${STORY_IMAGE:-xirizhi/story:latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
     container_name: story
     restart: unless-stopped
     environment:
