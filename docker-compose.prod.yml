@@ -1,0 +1,198 @@
+# 小故事铺 2.0 · 生产编排（**方案文件，本文件不启动任何东西**）
+#
+#   ⛔ 本文件是「第 2 项：生产 docker 部署」的方案落盘。**尚未执行、不可擅自 up**。
+#      真正启动前需产品负责人逐项批准（见 docs/product/12-prod-deploy-runbook.md §5）。
+#
+# 用法（先看 runbook，不要直接复制粘贴）：
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml config      # 只校验
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d       # ← 需批准
+#
+# 为什么是**独立文件**而不是覆盖 docker-compose.m4.yml（08 §A3 原方案是覆盖）：
+#   1. m4 文件里写死了 `container_name: story-server` / `story-admin`，与联调栈同名，
+#      覆盖时无法并存（prod 起不来，或把联调栈顶掉）；
+#   2. m4 发布宿主机端口 13300/18082 并绑 0.0.0.0，生产不该再暴露这些调试端口；
+#   3. m4 的 DATABASE_URL 指向 dev 库，覆盖时若漏改一项就会连错库 —— 独立文件更安全。
+#
+# 与真实边缘的关系（**重要**，08 §1.5 已澄清）：本机边缘是 **Traefik v3.4**，不是手写
+# nginx。所以 TLS 与域名路由走 server/admin 容器上的 **traefik label**（这是 08 §C3
+# 的「路线①」，复用现成 *.xirizhi.cn 通配证书，零证书改动）。文件末尾另附一个
+# **nginx 反代样例**（profile: nginx-front，默认不启用），只作为「不想用 traefik
+# label」时的替代形态。
+
+name: story-prod
+
+services:
+  # ---------------------------------------------------------------------------
+  # API 服务
+  # ---------------------------------------------------------------------------
+  server:
+    # 复用联调栈已构建好的镜像（apps/server/Dockerfile 产物）。
+    # 要重建：docker compose --env-file .env.prod -f docker-compose.prod.yml build server
+    image: story-server:m4
+    container_name: story-server-prod
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+
+      # ⚠️ 数据库连接串：**不写默认值**，缺了就直接失败（env.ts 也是这个口径：
+      #    误连错库必须响亮地失败，而不是静默跑起来）。
+      #    见 runbook §3 —— 「只读连接串」会让 App 的注册/设置/进度/收藏/音频全部失败。
+      DATABASE_URL: ${PROD_DATABASE_URL:?PROD_DATABASE_URL 未设置（见 .env.prod.example）}
+
+      # 生产密钥：必须由 .env.prod 注入，且**不得**用联调默认值。
+      # FIXED_SMS_CODE 若是 123456，任何人都能登录后台（08 §4.2 R5）。
+      JWT_SECRET: ${PROD_JWT_SECRET:?PROD_JWT_SECRET 未设置}
+      FIXED_SMS_CODE: ${PROD_FIXED_SMS_CODE:?PROD_FIXED_SMS_CODE 未设置（禁止 123456）}
+
+      LOG_LEVEL: ${PROD_LOG_LEVEL:-info}
+
+      # TTS 合成（03-decisions §11）
+      TTS_VOICE: ${PROD_TTS_VOICE:-zh-CN-YunxiNeural}
+      TTS_RATE: ${PROD_TTS_RATE:--10%}
+      TTS_CHUNK_RETRIES: ${PROD_TTS_CHUNK_RETRIES:-4}
+      AUDIO_CACHE_DIR: /data/audio-cache
+
+    volumes:
+      # 命名卷（不是宿主 bind）：宿主路径含中文，且音频是可再生派生物。
+      # 生产换机/重建会丢缓存，但可重新 TTS 合成（08 §4.2 R6）。
+      - story-prod-audio-cache:/data/audio-cache
+
+    # 不发布任何宿主机端口：只经 traefik-public 暴露（与老站 story 容器同款）。
+    # 需要临时排查时，用 override 文件加端口（**不要**改本文件）：
+    #   printf 'services:\n  server:\n    ports: ["127.0.0.1:13300:3000"]\n' > /tmp/dbg.yml
+    #   docker compose --env-file .env.prod -f docker-compose.prod.yml -f /tmp/dbg.yml up -d
+
+    networks:
+      - prod-db   # postgres-shared：能解析到 postgres 容器
+      - edge      # traefik-public：被 traefik 发现
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    labels:
+      # ---- Traefik：api-story.xirizhi.cn → server:3000 ----
+      traefik.enable: "true"
+      # 指定 traefik 走哪个网络找这个容器（容器同时挂两个网络时必须显式指定，
+      # 否则 traefik 可能选到 prod-db 那个网络而解析不到）。
+      traefik.docker.network: "traefik-public"
+
+      traefik.http.routers.story-api.rule: "Host(`api-story.xirizhi.cn`)"
+      traefik.http.routers.story-api.entrypoints: "websecure"
+      # tls=true → 使用 default 证书库，即 tls.yml 里的 cert_1（SAN *.xirizhi.cn）。
+      # 不需要新证书，但**该证书 2026-11-13 到期**，见 runbook §6 风险 P1。
+      traefik.http.routers.story-api.tls: "true"
+      traefik.http.services.story-api.loadbalancer.server.port: "3000"
+
+      # HTTP 跳 HTTPS（新增域名，不影响老站 story / story-api 的 web 路由）。
+      traefik.http.routers.story-api-web.rule: "Host(`api-story.xirizhi.cn`)"
+      traefik.http.routers.story-api-web.entrypoints: "web"
+      traefik.http.routers.story-api-web.middlewares: "story-api-redirect"
+      traefik.http.middlewares.story-api-redirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.story-api-redirect.redirectscheme.permanent: "true"
+
+  # ---------------------------------------------------------------------------
+  # 运营后台（镜像内已是 nginx：静态产物 + /api 反代到 server）
+  # ---------------------------------------------------------------------------
+  admin:
+    image: story-admin:m4
+    container_name: story-admin-prod
+    restart: unless-stopped
+
+    environment:
+      # 留空 = 同源：前端请求相对 /api/*，由容器内 nginx 反代到 server:3000。
+      VITE_API_BASE: ""
+
+    depends_on:
+      server:
+        condition: service_healthy
+
+    networks:
+      - edge
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+    labels:
+      # ---- Traefik：admin-story.xirizhi.cn → admin:80 ----
+      traefik.enable: "true"
+      traefik.docker.network: "traefik-public"
+
+      traefik.http.routers.story-admin.rule: "Host(`admin-story.xirizhi.cn`)"
+      traefik.http.routers.story-admin.entrypoints: "websecure"
+      traefik.http.routers.story-admin.tls: "true"
+      traefik.http.services.story-admin.loadbalancer.server.port: "80"
+
+      traefik.http.routers.story-admin-web.rule: "Host(`admin-story.xirizhi.cn`)"
+      traefik.http.routers.story-admin-web.entrypoints: "web"
+      traefik.http.routers.story-admin-web.middlewares: "story-admin-redirect"
+      traefik.http.middlewares.story-admin-redirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.story-admin-redirect.redirectscheme.permanent: "true"
+
+  # ---------------------------------------------------------------------------
+  # 【可选】nginx 反代样例 —— 仅在「不想用 traefik label」时启用
+  #
+  #   docker compose --env-file .env.prod -f docker-compose.prod.yml \
+  #     --profile nginx-front up -d
+  #
+  # 启用它时，应把上面 server/admin 的 traefik label 去掉，改由本服务统一对外，
+  # 否则两套路由会争同一域名。配置见 docker/nginx/story-prod.conf。
+  # 它通过 edge（traefik-public）解析 server / admin —— 三个服务同在该网络。
+  # ---------------------------------------------------------------------------
+  nginx-front:
+    image: nginx:1.27-alpine
+    container_name: story-nginx-prod
+    restart: unless-stopped
+    profiles: ["nginx-front"]
+
+    volumes:
+      - ./docker/nginx/story-prod.conf:/etc/nginx/conf.d/default.conf:ro
+
+    depends_on:
+      server:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+
+    networks:
+      - edge
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "traefik-public"
+
+      traefik.http.routers.story-prod-api.rule: "Host(`api-story.xirizhi.cn`)"
+      traefik.http.routers.story-prod-api.entrypoints: "websecure"
+      traefik.http.routers.story-prod-api.tls: "true"
+      traefik.http.services.story-prod-api.loadbalancer.server.port: "80"
+
+      traefik.http.routers.story-prod-admin.rule: "Host(`admin-story.xirizhi.cn`)"
+      traefik.http.routers.story-prod-admin.entrypoints: "websecure"
+      traefik.http.routers.story-prod-admin.tls: "true"
+      traefik.http.services.story-prod-admin.loadbalancer.server.port: "80"
+
+networks:
+  # 生产库所在网络（既有，外部创建）。生产 postgres 未发布宿主端口（08 §1.4 R7），
+  # 只能从该网络内按容器名连过去。
+  prod-db:
+    external: true
+    name: postgres-shared
+
+  # 边缘 traefik 所在网络（既有）。
+  edge:
+    external: true
+    name: traefik-public
+
+volumes:
+  story-prod-audio-cache:
+    name: story-prod-audio-cache

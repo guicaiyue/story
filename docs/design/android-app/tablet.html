@@ -1,0 +1,279 @@
+<!doctype html>
+<!--
+  小故事铺 · 平板布局草案（1280 × 800）
+  ⚠️ 这是**布局草案**，不是最终视觉稿：用 App 真实色板（lib/theme/tokens.dart）画结构，
+     用来确认三件事——侧边导航、内容收窄居中、播放器双栏。
+  对应实现：apps/app/lib/theme/layout.dart（断点 600 / 900）
+            apps/app/lib/screens/main_shell.dart（≥900 侧边导航）
+            apps/app/lib/widgets/common.dart（StoryScaffold.fullBleed）
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>小故事铺 · 平板布局草案</title>
+<style>
+  :root {
+    /* 与 lib/theme/tokens.dart 的 StoryPalette.day 一致 */
+    --bg: #FBF7F0;
+    --surf: #FFFDF9;
+    --surface2: #F4EBDD;
+    --line: #EADFCE;
+    --ink: #3A3330;
+    --ink2: #6E635C;
+    --ink3: #948780;
+    --accent: #D98E5A;
+    --accent-ink: #8A4E26;
+    --accent-soft: #F5E3D3;
+    --night-bg: #1E1B2E;
+    --night-surf: #272341;
+    --night-line: #3A3556;
+    --night-ink: #F5F0E6;
+    --night-ink2: #B9B2C9;
+    --night-accent: #E8A97A;
+    --r-lg: 22px;
+    --r-md: 16px;
+    --r-sm: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px;
+    background: #E8EAEE;
+    font: 14px/1.6 -apple-system, "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+    color: #17181a;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .note { color: #5a6472; font-size: 13px; margin: 0 0 24px; max-width: 68em; }
+  .note code { background: #fff; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .stage { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+
+  /* 平板外壳：1280 × 800 */
+  .tablet {
+    width: 1280px; height: 800px; border-radius: 28px; overflow: hidden;
+    background: var(--bg); border: 10px solid #cfd4dc;
+    box-shadow: 0 18px 50px rgba(20, 24, 32, .18);
+    display: flex; position: relative;
+  }
+  .tablet.night { background: var(--night-bg); border-color: #3a3a44; }
+
+  /* ---------- 侧边导航 ---------- */
+  .rail {
+    width: 168px; flex: none; background: var(--surf);
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; padding: 24px 14px; gap: 6px;
+  }
+  .night .rail { background: var(--night-surf); border-color: var(--night-line); }
+  .brand { font-weight: 700; font-size: 15px; color: var(--accent-ink); padding: 0 10px 18px; }
+  .night .brand { color: var(--night-accent); }
+  .rail-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 12px; border-radius: var(--r-sm);
+    color: var(--ink2); font-size: 14px;
+  }
+  .rail-item.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 650; }
+  .night .rail-item { color: var(--night-ink2); }
+  .night .rail-item.on { background: #2E2A48; color: var(--night-accent); }
+  .rail-item .dot { width: 18px; height: 18px; border-radius: 6px; background: currentColor; opacity: .55; }
+  .rail-spacer { flex: 1; }
+  .rail-foot { font-size: 11px; color: var(--ink3); padding: 0 10px; }
+  .night .rail-foot { color: var(--night-ink2); }
+
+  /* ---------- 内容区：收窄到 960 居中 ---------- */
+  .content { flex: 1; min-width: 0; overflow: hidden; display: flex; justify-content: center; }
+  .inner { width: 960px; max-width: 100%; padding: 28px 32px 32px; overflow: hidden; }
+
+  .content-max { position: relative; }
+  /* 960 上限的可视线：内容区左右两条虚线 + 顶部标签 */
+  .content-max::before, .content-max::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 0;
+    border-left: 1px dashed rgba(169, 130, 94, .5);
+  }
+  .content-max::before { left: 0; }
+  .content-max::after { right: 0; }
+  .measure {
+    position: absolute; top: 6px; right: 0; color: #A9825E; font-size: 10px;
+    letter-spacing: .04em; background: inherit; padding-left: 6px;
+  }
+
+  /* ---------- 首页 ---------- */
+  .greet { font-size: 26px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
+  .greet small { display: block; font-size: 13px; font-weight: 400; color: var(--ink3); margin-top: 6px; }
+  .night .greet { color: var(--night-ink); }
+  .night .greet small { color: var(--night-ink2); }
+
+  .hero {
+    margin: 16px 0 20px; height: 148px; border-radius: var(--r-lg);
+    background: linear-gradient(120deg, #F0E0CC, #F7EDE0);
+    border: 1px solid var(--line); display: flex; align-items: flex-end; padding: 20px;
+  }
+  .night .hero { background: linear-gradient(120deg, #2A2544, #221F38); border-color: var(--night-line); }
+  .hero h2 { margin: 0; font-size: 20px; color: var(--accent-ink); }
+  .night .hero h2 { color: var(--night-accent); }
+
+  .chips { display: flex; gap: 8px; margin-bottom: 18px; }
+  .chip {
+    padding: 8px 16px; border-radius: 999px; background: var(--surface2);
+    color: var(--ink2); font-size: 13px; border: 1px solid transparent;
+  }
+  .chip.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 650; border-color: #EBD3BC; }
+  .night .chip { background: var(--night-surf); color: var(--night-ink2); }
+  .night .chip.on { background: #2E2A48; color: var(--night-accent); border-color: #4A4468; }
+
+  .section { font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 12px; }
+  .night .section { color: var(--night-ink); }
+
+  .cat-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  .cat {
+    background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 14px; display: grid; gap: 4px;
+  }
+  .night .cat { background: var(--night-surf); border-color: var(--night-line); }
+  .cat b { font-size: 14px; color: var(--ink); font-weight: 650; }
+  .cat span { font-size: 12px; color: var(--ink3); }
+  .night .cat b { color: var(--night-ink); }
+  .night .cat span { color: var(--night-ink2); }
+
+  .story-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+  .story { background: var(--surf); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+  .night .story { background: var(--night-surf); border-color: var(--night-line); }
+  .story .art { height: 96px; background: linear-gradient(140deg, #EFDFCB, #F6EBDA); }
+  .night .story .art { background: linear-gradient(140deg, #322C50, #262242); }
+  .story .meta { padding: 10px 12px 12px; display: grid; gap: 2px; }
+  .story b { font-size: 13px; color: var(--ink); font-weight: 600; }
+  .story span { font-size: 11px; color: var(--ink3); }
+  .night .story b { color: var(--night-ink); }
+  .night .story span { color: var(--night-ink2); }
+
+  /* ---------- 播放器：双栏 ---------- */
+  .player { flex: 1; display: grid; grid-template-columns: 360px 1fr; min-width: 0; }
+  .plist {
+    border-right: 1px solid var(--line); background: var(--surf);
+    padding: 22px 18px; overflow: hidden;
+  }
+  .night .plist { background: var(--night-surf); border-color: var(--night-line); }
+  .plist h3 { margin: 0 0 12px; font-size: 14px; color: var(--ink2); font-weight: 650; }
+  .night .plist h3 { color: var(--night-ink2); }
+  .pitem { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: var(--r-sm); }
+  .pitem.on { background: var(--accent-soft); }
+  .night .pitem.on { background: #2E2A48; }
+  .pitem .art { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(140deg, #EFDFCB, #F6EBDA); flex: none; }
+  .night .pitem .art { background: linear-gradient(140deg, #322C50, #262242); }
+  .pitem div { display: grid; gap: 2px; min-width: 0; }
+  .pitem b { font-size: 13px; color: var(--ink); font-weight: 600; }
+  .pitem span { font-size: 11px; color: var(--ink3); }
+  .night .pitem b { color: var(--night-ink); }
+  .night .pitem span { color: var(--night-ink2); }
+
+  .pstage { padding: 28px 40px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  .pcover { width: 260px; height: 260px; border-radius: 28px; background: linear-gradient(150deg, #EBD6BC, #F7EEE2); border: 1px solid var(--line); }
+  .night .pcover { background: linear-gradient(150deg, #322C50, #221F38); border-color: var(--night-line); }
+  .ptitle { font-size: 24px; font-weight: 700; color: var(--ink); margin: 0; }
+  .night .ptitle { color: var(--night-ink); }
+  .psub { font-size: 13px; color: var(--ink3); margin: 6px 0 0; }
+  .night .psub { color: var(--night-ink2); }
+  .pbar { height: 6px; border-radius: 999px; background: var(--surface2); overflow: hidden; max-width: 520px; }
+  .night .pbar { background: #2A2544; }
+  .pbar i { display: block; height: 100%; width: 42%; background: var(--accent); }
+  .pcontrols { display: flex; align-items: center; gap: 18px; }
+  .pbtn { width: 44px; height: 44px; border-radius: 999px; background: var(--surface2); }
+  .pbtn.main { width: 64px; height: 64px; background: var(--accent); }
+  .night .pbtn { background: #2E2A48; }
+  .night .pbtn.main { background: var(--night-accent); }
+</style>
+</head>
+<body>
+  <h1>小故事铺 · 平板布局草案（1280 × 800）</h1>
+  <p class="note">
+    用 App 真实色板画的<strong>结构草案</strong>，用来确认三件事：<strong>左侧导航</strong>（宽度 ≥ 900）、
+    <strong>内容收窄到 960 居中</strong>（虚线即 960 边界）、<strong>播放器双栏</strong>（左列表右播放）。
+    手机端（&lt; 600）保持底部导航、内容吃满，见 <code>index.html</code>。
+  </p>
+
+  <div class="stage">
+    <!-- 屏 1：首页 -->
+    <div class="tablet">
+      <nav class="rail">
+        <div class="brand">小故事铺</div>
+        <div class="rail-item on"><span class="dot"></span>首页</div>
+        <div class="rail-item"><span class="dot"></span>分类</div>
+        <div class="rail-item"><span class="dot"></span>我的</div>
+        <div class="rail-spacer"></div>
+        <div class="rail-foot">家长中心在「我的」里</div>
+      </nav>
+      <div class="content">
+        <div class="inner content-max">
+          <div class="measure">内容区 960 上限（两侧虚线，居中留白）</div>
+          <h2 class="greet">晚上好，今天想听点什么？<small>3–6 岁 · 睡前 20 分钟</small></h2>
+          <div class="hero">
+            <div>
+              <h2>今晚推荐：月光下的兔子洞</h2>
+              <p style="margin:6px 0 0;font-size:12px;color:#8C7A6A">12 分钟 · 睡前 · 已为 3–6 岁调慢语速</p>
+            </div>
+          </div>
+          <div class="chips">
+            <div class="chip on">3–6 岁</div><div class="chip">6–9 岁</div><div class="chip">9+</div>
+            <div class="chip">睡前</div><div class="chip">经典</div>
+          </div>
+          <div class="section">继续听</div>
+          <div class="story-row">
+            <div class="story"><div class="art"></div><div class="meta"><b>小兔子找月亮</b><span>还剩 4 分钟</span></div></div>
+            <div class="story"><div class="art"></div><div class="meta"><b>会飞的种子</b><span>还剩 11 分钟</span></div></div>
+            <div class="story"><div class="art"></div><div class="meta"><b>勇敢的小刺猬</b><span>还剩 2 分钟</span></div></div>
+            <div class="story"><div class="art"></div><div class="meta"><b>月光下的兔子洞</b><span>还没开始</span></div></div>
+          </div>
+          <div class="section" style="margin-top:22px">分类</div>
+          <div class="cat-grid">
+            <div class="cat"><b>睡前故事</b><span>194 篇</span></div>
+            <div class="cat"><b>儿童故事</b><span>198 篇</span></div>
+            <div class="cat"><b>格林童话</b><span>126 篇</span></div>
+            <div class="cat"><b>民间故事</b><span>198 篇</span></div>
+            <div class="cat"><b>益智故事</b><span>156 篇</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 屏 2：播放器（夜间） -->
+    <div class="tablet night">
+      <nav class="rail">
+        <div class="brand">小故事铺</div>
+        <div class="rail-item"><span class="dot"></span>首页</div>
+        <div class="rail-item"><span class="dot"></span>分类</div>
+        <div class="rail-item on"><span class="dot"></span>正在播放</div>
+        <div class="rail-spacer"></div>
+        <div class="rail-foot">睡眠定时 20:00 后自动停</div>
+      </nav>
+      <div class="player">
+        <div class="plist">
+          <h3>今晚的列表 · 6 个故事</h3>
+          <div class="pitem on">
+            <div class="art"></div><div><b>小兔子找月亮</b><span>正在播放 · 03:12</span></div>
+          </div>
+          <div class="pitem">
+            <div class="art"></div><div><b>会飞的种子</b><span>09:40</span></div>
+          </div>
+          <div class="pitem">
+            <div class="art"></div><div><b>勇敢的小刺猬</b><span>07:05</span></div>
+          </div>
+          <div class="pitem">
+            <div class="art"></div><div><b>月光下的兔子洞</b><span>12:30</span></div>
+          </div>
+        </div>
+        <div class="pstage">
+          <div class="pcover"></div>
+          <div>
+            <p class="ptitle">小兔子找月亮</p>
+            <p class="psub">睡前故事 · 3–6 岁 · 共 06:20</p>
+          </div>
+          <div class="pbar"><i></i></div>
+          <div class="pcontrols">
+            <div class="pbtn"></div>
+            <div class="pbtn main"></div>
+            <div class="pbtn"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

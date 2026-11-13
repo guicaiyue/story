@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>小故事铺 · 运营后台</title>
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio, geometry.
+   Put this @layer first; product CSS outside the layer wins ordinary layout rules.
+   Native hidden and closed-dialog states take precedence over component display rules. */
+@layer od-layout {
+  [hidden]:not([hidden="until-found" i]) { display: none !important; }
+  dialog:not([open]) { display: none !important; }
+
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+  /* containers */
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+  /* stacked information: each piece is its own line — never sibling inline spans */
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+
+  /* functional inline SVG icons opt into bounded geometry; content SVGs keep their own */
+  .od-icon { display: inline-block; inline-size: var(--od-icon-size, 1em); block-size: var(--od-icon-size, 1em); flex: none; }
+
+  /* data text only — authored copy is rewritten to its budget instead */
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .od-clamp-2 { -webkit-line-clamp: 2; }
+  .od-clamp-3 { -webkit-line-clamp: 3; }
+  .od-lines-2 { min-height: calc(2 * 1.4em); }
+  .od-nowrap  { white-space: nowrap; }
+  .od-keep    { word-break: keep-all; overflow-wrap: anywhere; }
+
+  /* screen skeleton (optional): bars take their own space, the middle scrolls */
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+  .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+             padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+  .od-rail::-webkit-scrollbar { display: none; }
+  :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+  :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+  .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+:root [hidden]:where(:not([hidden="until-found" i])) { display: none; }
+/* /OD-LAYOUT-PRIMITIVES v1 */
+</style>
+<link rel="stylesheet" href="assets/css/tokens.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body>
+
+<!-- ============ 登录页 ============ -->
+<div class="login" id="login-screen" hidden>
+  <section class="login-brand">
+    <div class="login-logo">
+      <svg class="od-icon" style="--od-icon-size:26px" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v18H6.5A2.5 2.5 0 0 1 4 18.5v-13Z" stroke="#3F5B57" stroke-width="1.6"/>
+        <path d="M8 3v18" stroke="#D98E5A" stroke-width="1.6"/>
+        <path d="M12 8h4M12 12h4" stroke="#3A3330" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      小故事铺 · 运营后台
+    </div>
+
+    <svg class="login-art" viewBox="0 0 520 300" role="img" aria-label="书架上摆着故事书，旁边是录音麦克风">
+      <rect x="34" y="206" width="452" height="10" rx="5" fill="#E0D3BE"/>
+      <rect x="52" y="120" width="26" height="86" rx="5" fill="#C98A63"/>
+      <rect x="84" y="138" width="24" height="68" rx="5" fill="#7E9A93"/>
+      <rect x="114" y="104" width="28" height="102" rx="5" fill="#A9A28C"/>
+      <rect x="148" y="150" width="22" height="56" rx="5" fill="#B98E8E"/>
+      <rect x="176" y="128" width="26" height="78" rx="5" fill="#8C97A6"/>
+      <rect x="222" y="156" width="96" height="50" rx="8" fill="#F1E7DC" stroke="#E0D3BE"/>
+      <path d="M238 176h64M238 188h44" stroke="#C3B7A6" stroke-width="5" stroke-linecap="round"/>
+      <rect x="352" y="96" width="22" height="110" rx="11" fill="#3F5B57"/>
+      <rect x="346" y="86" width="34" height="16" rx="8" fill="#7E9A93"/>
+      <path d="M363 206v18" stroke="#3F5B57" stroke-width="8" stroke-linecap="round"/>
+      <path d="M330 150c-14 6-20 18-20 30s6 24 20 30" stroke="#D98E5A" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M300 138c-22 10-32 26-32 42s10 32 32 42" stroke="#E0B98C" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <circle cx="424" cy="70" r="30" fill="#F3E3D6"/>
+      <circle cx="412" cy="62" r="30" fill="#FBF7F0"/>
+      <circle cx="452" cy="118" r="3" fill="#C98A63"/>
+      <circle cx="244" cy="62" r="3" fill="#7E9A93"/>
+      <circle cx="204" cy="90" r="4" fill="#A9A28C"/>
+    </svg>
+
+    <div class="login-brand-copy">
+      <h1>把故事挑好，<br />把孩子哄睡。</h1>
+      <p>从静态站升级为内容平台的第一版后台：选品、审核、上架、看数据都在这里完成。</p>
+      <div class="login-brand-stats">
+        <span class="od-stat"><span>2,197</span><span>篇故事</span></span>
+        <span class="od-stat"><span>15</span><span>个分类</span></span>
+        <span class="od-stat"><span>0</span><span>个音频（TTS 实时合成）</span></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <h2>登录运营后台</h2>
+      <p>使用内容团队分配的手机号或账号登录</p>
+
+      <div class="login-tabs" role="tablist" aria-label="登录方式">
+        <button type="button" class="login-tab" role="tab" aria-selected="true" data-mode="code">验证码登录</button>
+        <button type="button" class="login-tab" role="tab" aria-selected="false" data-mode="pwd">密码登录</button>
+      </div>
+
+      <form class="login-form" id="login-form" novalidate>
+        <div class="field">
+          <label class="field-label" for="login-phone">手机号 / 账号<span class="req">*</span></label>
+          <input id="login-phone" class="input" type="tel" inputmode="numeric" autocomplete="username" placeholder="11 位手机号，例如 13800138000" value="13800138000" />
+        </div>
+
+        <div class="field" id="code-field">
+          <label class="field-label" for="login-code">短信验证码<span class="req">*</span></label>
+          <div class="code-row">
+            <input id="login-code" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="6 位数字" autocomplete="one-time-code" value="123456" />
+            <button type="button" class="btn btn-secondary" id="send-code">获取验证码</button>
+          </div>
+        </div>
+
+        <div class="field" id="pwd-field" hidden>
+          <label class="field-label" for="login-pwd">密码<span class="req">*</span></label>
+          <input id="login-pwd" class="input" type="password" autocomplete="current-password" placeholder="至少 6 位" />
+        </div>
+
+        <div class="notice notice-warn" id="login-error" role="alert" hidden></div>
+
+        <button type="button" class="btn btn-primary btn-block" id="login-submit">登录</button>
+      </form>
+
+      <div class="login-hint">
+        演示环境：手机号 <strong>13800138000</strong>，验证码填任意 6 位数字（如 123456）；密码登录填 6 位以上即可。
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ 应用骨架 ============ -->
+<div class="shell" id="app-shell" hidden>
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <svg class="od-icon" style="--od-icon-size:22px" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v18H6.5A2.5 2.5 0 0 1 4 18.5v-13Z" stroke="#3F5B57" stroke-width="1.6"/>
+        <path d="M8 3v18" stroke="#D98E5A" stroke-width="1.6"/>
+      </svg>
+      小故事铺
+    </div>
+    <nav class="sidebar-nav" aria-label="主导航">
+      <div class="nav-group-label">内容运营</div>
+      <button type="button" class="nav-item" data-act="go" data-route="dashboard" data-nav="dashboard">
+        <span class="nav-dot"></span><span class="nav-label">数据看板</span>
+      </button>
+      <button type="button" class="nav-item" data-act="go" data-route="stories" data-nav="stories">
+        <span class="nav-dot"></span><span class="nav-label">故事列表</span>
+      </button>
+      <button type="button" class="nav-item" data-act="go" data-route="review" data-nav="review">
+        <span class="nav-dot"></span><span class="nav-label">审核队列</span>
+        <span class="nav-count" data-pending-count>128</span>
+      </button>
+      <button type="button" class="nav-item" data-act="new-story" data-nav="story-edit">
+        <span class="nav-dot"></span><span class="nav-label">新建故事</span>
+      </button>
+
+      <div class="nav-group-label">运营配置</div>
+      <button type="button" class="nav-item" data-act="go" data-route="ops" data-nav="ops">
+        <span class="nav-dot"></span><span class="nav-label">分类与推荐位</span>
+      </button>
+
+      <div class="nav-group-label">用户</div>
+      <button type="button" class="nav-item" data-act="go" data-route="families" data-nav="families">
+        <span class="nav-dot"></span><span class="nav-label">家庭与儿童档案</span>
+      </button>
+
+      <div class="nav-group-label">数据分析</div>
+      <button type="button" class="nav-item" data-act="go" data-route="analytics" data-nav="analytics">
+        <span class="nav-dot"></span><span class="nav-label">数据中心</span>
+      </button>
+
+      <div class="nav-group-label">系统</div>
+      <button type="button" class="nav-item" data-act="go" data-route="system" data-nav="system">
+        <span class="nav-dot"></span><span class="nav-label">管理员与日志</span>
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      v0.9 内测版 · 内容库 2,197 篇<br />
+      音频全部走 TTS 实时合成
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="btn btn-icon btn-secondary nav-toggle" data-act="nav-toggle" aria-label="打开导航菜单">☰</button>
+      <nav class="crumbs" id="crumb" aria-label="面包屑"></nav>
+      <div class="top-spacer"></div>
+      <span class="top-meta" id="tts-queue"><span class="ping"></span>TTS 队列</span>
+      <div class="user-chip">
+        <span class="who">
+          <strong id="user-name">未登录</strong>
+          <span id="user-role">—</span>
+        </span>
+        <span class="avatar" id="user-avatar" aria-hidden="true">林</span>
+        <button type="button" class="btn btn-sm btn-ghost" data-act="logout">退出</button>
+      </div>
+    </header>
+    <main class="content" id="view-root" tabindex="-1"></main>
+  </div>
+</div>
+
+<div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>
+<input type="file" id="cover-file" accept="image/*" class="visually-hidden" tabindex="-1" aria-hidden="true" />
+
+<!-- ============ 对话框 ============ -->
+<dialog id="dlg-reject" aria-labelledby="reject-title">
+  <div class="dialog-head">
+    <div>
+      <h2 id="reject-title">驳回故事 <span id="reject-story"></span></h2>
+      <p>驳回后故事会回到编辑的草稿箱，并带上驳回原因。</p>
+    </div>
+    <button type="button" class="btn btn-icon btn-ghost" data-act="dlg-close" aria-label="关闭">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="field">
+      <label class="field-label" for="reject-select">驳回原因<span class="req">*</span></label>
+      <select id="reject-select" class="select">
+        <option>正文出现不适龄表达，请修改后重新提交</option>
+        <option>与已有故事内容重复度较高，建议合并或改写</option>
+        <option>分类与年龄档不合适，请重新选择</option>
+        <option>缺少封面或封面不符合规范</option>
+        <option>标题与正文内容不符，请调整标题</option>
+      </select>
+    </div>
+    <div class="field" style="margin-top:var(--sp-4)">
+      <label class="field-label" for="reject-note">补充说明（选填）</label>
+      <textarea id="reject-note" class="textarea-sm" rows="3" placeholder="例如：第 3 段的「打斗」描写建议改成「比试」"></textarea>
+    </div>
+    <div class="field-error" id="reject-error" hidden></div>
+  </div>
+  <div class="dialog-foot">
+    <div class="grow">驳回记录会写入操作日志</div>
+    <button type="button" class="btn btn-secondary" data-act="dlg-cancel">取消</button>
+    <button type="button" class="btn btn-danger" data-act="reject-submit">确认驳回</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-confirm" aria-labelledby="confirm-title">
+  <div class="dialog-head">
+    <div>
+      <h2 id="confirm-title">确认操作</h2>
+      <p id="confirm-desc"></p>
+    </div>
+  </div>
+  <div class="dialog-foot">
+    <div class="grow"></div>
+    <button type="button" class="btn btn-secondary" data-act="dlg-cancel">取消</button>
+    <button type="button" class="btn btn-primary" id="confirm-ok" data-act="dlg-confirm">确认</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-pick" class="wide" aria-labelledby="pick-title">
+  <div class="dialog-head">
+    <div>
+      <h2 id="pick-title">选择内容</h2>
+      <p>只能选择「已上架」的故事，改动会立即生效。</p>
+    </div>
+    <button type="button" class="btn btn-icon btn-ghost" data-act="dlg-close" aria-label="关闭">✕</button>
+  </div>
+  <div class="dialog-body">
+    <label class="visually-hidden" for="pick-search">搜索故事</label>
+    <input id="pick-search" class="input" type="search" placeholder="搜索标题 / 编号 / 作者 / 标签" />
+    <div class="pick-list" id="pick-list" style="margin-top:var(--sp-4)"></div>
+  </div>
+  <div class="dialog-foot">
+    <div class="grow" id="pick-count">已选 0 篇</div>
+    <button type="button" class="btn btn-primary" data-act="dlg-close">完成</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-banner" aria-labelledby="banner-title-label">
+  <div class="dialog-head">
+    <div>
+      <h2 id="banner-title-label">编辑 banner</h2>
+      <p>banner 文案会直接展示在 App 首页轮播上。</p>
+    </div>
+    <button type="button" class="btn btn-icon btn-ghost" data-act="dlg-close" aria-label="关闭">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="form-grid">
+      <div class="field span-2">
+        <label class="field-label" for="banner-title">标题<span class="req">*</span></label>
+        <input id="banner-title" class="input" maxlength="18" placeholder="例如：睡前故事专辑 · 春天篇" />
+      </div>
+      <div class="field span-2">
+        <label class="field-label" for="banner-sub">副标题</label>
+        <input id="banner-sub" class="input" maxlength="24" placeholder="一句话卖点，建议 12 字以内" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="banner-period">排期</label>
+        <input id="banner-period" class="input" placeholder="例如：3 月 1 日 — 3 月 31 日" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="banner-status">状态</label>
+        <select id="banner-status" class="select">
+          <option>展示中</option>
+          <option>已下线</option>
+          <option>待排期</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-error" id="banner-error" hidden></div>
+  </div>
+  <div class="dialog-foot">
+    <div class="grow"></div>
+    <button type="button" class="btn btn-secondary" data-act="dlg-cancel">取消</button>
+    <button type="button" class="btn btn-primary" data-act="banner-submit">保存</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-playlist" aria-labelledby="pl-title">
+  <div class="dialog-head">
+    <div>
+      <h2 id="pl-title">新建场景歌单</h2>
+      <p>歌单会按场景出现在 App 播放页，创建后可继续添加曲目。</p>
+    </div>
+    <button type="button" class="btn btn-icon btn-ghost" data-act="dlg-close" aria-label="关闭">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="field">
+      <label class="field-label" for="pl-name">歌单名称<span class="req">*</span></label>
+      <input id="pl-name" class="input" maxlength="14" placeholder="例如：雨天午后" />
+    </div>
+    <div class="field" style="margin-top:var(--sp-4)">
+      <label class="field-label" for="pl-desc">场景说明</label>
+      <input id="pl-desc" class="input" maxlength="30" placeholder="例如：语速偏慢，适合午睡" />
+    </div>
+    <div class="field" style="margin-top:var(--sp-4)">
+      <label class="field-label" for="pl-audience">适龄</label>
+      <select id="pl-audience" class="select">
+        <option>3-6 岁</option>
+        <option>6-9 岁</option>
+        <option>全年龄</option>
+      </select>
+    </div>
+    <div class="field-error" id="pl-error" hidden></div>
+  </div>
+  <div class="dialog-foot">
+    <div class="grow"></div>
+    <button type="button" class="btn btn-secondary" data-act="dlg-cancel">取消</button>
+    <button type="button" class="btn btn-primary" data-act="playlist-submit">创建歌单</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-tag" aria-labelledby="tag-title">
+  <div class="dialog-head">
+    <div>
+      <h2 id="tag-title">批量打标签</h2>
+      <p>标签用于运营位筛选与推荐，单篇故事最多 6 个。</p>
+    </div>
+    <button type="button" class="btn btn-icon btn-ghost" data-act="dlg-close" aria-label="关闭">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="od-cluster" id="tag-options" style="--od-gap:8px">
+      <label class="radio-card"><input type="checkbox" value="哄睡" /><span>哄睡</span></label>
+      <label class="radio-card"><input type="checkbox" value="经典改编" /><span>经典改编</span></label>
+      <label class="radio-card"><input type="checkbox" value="原创" /><span>原创</span></label>
+      <label class="radio-card"><input type="checkbox" value="科普" /><span>科普</span></label>
+      <label class="radio-card"><input type="checkbox" value="情绪" /><span>情绪</span></label>
+      <label class="radio-card"><input type="checkbox" value="习惯" /><span>习惯</span></label>
+      <label class="radio-card"><input type="checkbox" value="亲子" /><span>亲子</span></label>
+      <label class="radio-card"><input type="checkbox" value="主播精选" /><span>主播精选</span></label>
+    </div>
+    <div class="field" style="margin-top:var(--sp-4)">
+      <label class="field-label" for="tag-custom">自定义标签</label>
+      <input id="tag-custom" class="input" maxlength="6" placeholder="例如：雨天" />
+    </div>
+    <div class="field-error" id="tag-error" hidden></div>
+  </div>
+  <div class="dialog-foot">
+    <div class="grow"></div>
+    <button type="button" class="btn btn-secondary" data-act="dlg-cancel">取消</button>
+    <button type="button" class="btn btn-primary" id="tag-submit">应用到所选故事</button>
+  </div>
+</dialog>
+
+<dialog id="dlg-admin" aria-labelledby="admin-mode">
+  <div class="dialog-head">
+    <div>
+      <h2 id="admin-mode">新增管理员账号</h2>
+      <p>账号一经创建不可改名，权限范围请按最小必要填写。</p>
+    </div>
+    <button type="button" class="btn btn-icon btn-ghost" data-act="dlg-close" aria-label="关闭">✕</button>
+  </div>
+  <div class="dialog-body">
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-label" for="admin-name">姓名<span class="req">*</span></label>
+        <input id="admin-name" class="input" maxlength="12" placeholder="例如：程未" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="admin-account">登录账号<span class="req">*</span></label>
+        <input id="admin-account" class="input" placeholder="例如：chengwei@story" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="admin-role">角色</label>
+        <select id="admin-role" class="select">
+          <option>内容运营</option>
+          <option>审核编辑</option>
+          <option>数据分析</option>
+          <option>超级管理员</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="admin-scope">权限范围</label>
+        <input id="admin-scope" class="input" placeholder="例如：故事、运营位" />
+      </div>
+      <div class="field span-2">
+        <label class="switch-row" for="admin-status">
+          <input type="checkbox" id="admin-status" checked />
+          创建后立即启用该账号
+        </label>
+      </div>
+    </div>
+    <div class="field-error" id="admin-error" hidden></div>
+  </div>
+  <div class="dialog-foot">
+    <div class="grow"></div>
+    <button type="button" class="btn btn-secondary" data-act="dlg-cancel">取消</button>
+    <button type="button" class="btn btn-primary" data-act="admin-submit">保存</button>
+  </div>
+</dialog>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/views-core.js"></script>
+<script src="assets/js/views-ops.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
