@@ -1,5 +1,11 @@
 # 09 · 生产迁移执行手册（M4）
 
+> **状态（2026-11-13）：已执行完毕**。生产库已应用 5 条迁移，执行记录见
+> [24-prod-deploy-20261113.md](24-prod-deploy-20261113.md)。
+> 本文保留为**再次迁移时的操作手册**；其中 `scripts/m4-migrate-rehearsal.sh`
+> 已于 2026-11-13 仓库收敛时删除，步骤 2 的演练改用
+> `./scripts/preflight.sh --e2e`（临时容器 + 副本库，16 步）。
+
 > 配套文档：**10-prod-migration-baseline.md**（既成基线，冻结）。
 > 本文档 = 正式迁移方案：只补缺口、逐步幂等、可验收、回滚口径明确。
 >
@@ -68,10 +74,11 @@ docker exec -i postgres pg_restore --list < 快照文件 | grep -c "TABLE DATA"
 ### 步骤 2 · 在克隆库上演练迁移（强烈建议，非生产）
 
 ```bash
-./scripts/m4-migrate-rehearsal.sh
+./scripts/preflight.sh --e2e
 ```
 
-要看到 **20/20** 通过。该脚本在 dev 库的克隆上跑「快照 → 迁移 → 校验 → 回滚」，
+~~原命令 `./scripts/m4-migrate-rehearsal.sh` 要看到 20/20 通过~~ —— 该脚本已删除，
+现在用 `preflight.sh --e2e`（16 步端到端，含临时容器 + 副本库）。该脚本在 dev 库的克隆上跑「快照 → 迁移 → 校验 → 回滚」，
 **不碰生产**，且会把迁移放进容器网络内执行（宿主直跑连不上 dev 库）。
 
 ### 步骤 3 · 执行迁移（由人执行）

@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | 服务端 | Fastify + Prisma，`apps/server` | 136 |
 | 后台 | React + Vite + nginx，`apps/admin` | 63 |
-| App | Flutter，含平板适配，`apps/app` | 94 |
+| App | Flutter，含平板适配，~~`apps/app`~~ **已移出仓库**（源码见 NAS `backup/src/story-app-0.1.2-src.tar.gz`） | 94 |
 | 端到端 | 16/16（注册→听故事→进度→收藏→音频→后台登录/看板/审核/分析） | `apps/server/scripts/e2e-smoke.mjs` |
 
 平板不是"放大的手机"：断点 600/900、≥900 侧边导航、内容收窄 720/960、播放器左栏（封面＋今晚的列表）右栏控制；`test/tablet_layout_test.dart` 10 条钉住形态。**差额**：视觉舒适度只能在真机确认，本机没有模拟器。

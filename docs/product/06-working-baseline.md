@@ -1,5 +1,9 @@
 # 小故事铺 2.0 · 长期开发工作基座
 
+> **2026-11-13 复核**：仓库已收敛到 `main` 单分支、唯一版本 0.1.2、唯一 tag `v0.1.2`，
+> 生产已上线。本文中「设计工具产物落 docs/design」「分支 feat/platform-v2」等表述
+> 已按现状改写；其余流程性内容仍有效。
+
 > 这份文档定义「以后每次开工怎么干」：谁负责什么、一轮开发的固定动作、验收口径、介入指标、红线。
 > 目标不是写一份规范，而是让下一个会话（或下一个人）读完就能直接接着干。
 
@@ -7,12 +11,12 @@
 
 | 对象 | 位置 | 说明 |
 | --- | --- | --- |
-| 产品仓库 | `/vol1/1000/开发/NAS/story`（分支 `feat/platform-v2`） | 服务端/后台/App 都在这里；`main` 只放已上线内容 |
+| 产品仓库 | `main` 分支（NAS `/vol1/1000/开发/NAS/story`，本机 `~/Projects/story`） | 唯一分支；服务端/后台/静态站都在这里。Flutter 源码已移出仓库 |
 | 开发容器 | `/vol1/1000/docker/dsh-dev` → `http://192.168.1.4:3080` | dsh + 任务卡插件；访问用 `./dev-url.sh` |
 | 开发库 | `story-dev-postgres`（`story_dev` / `story_test`） | 从生产 dump 恢复的 2197 条内容；**开发只打这里** |
 | 生产库 | `postgres`（`story`） | 服务 storynook.cn，**只读**，迁移只产出文件不执行 |
-| 设计工具 | OpenDesign（`story-admin-web` / `story-android-app` 两个项目） | 产物落到 `docs/design/` |
-| 本地预览 | `python3 -m http.server 8899`（在 `docs/design/`） | 看设计稿：`http://192.168.1.4:8899/admin-web/index.html` |
+| 设计工具 | OpenDesign（`story-admin-web` / `story-android-app` 两个项目） | 产物原在 `docs/design/`，2026-11-13 已随仓库收敛移出，不在 git 历史里 |
+| 本地预览（静态站） | `node scripts/dev-server.js` → `http://127.0.0.1:5173` | 零依赖，改文件自动刷新 |
 
 ## 2. 角色
 
@@ -52,7 +56,6 @@
 | 服务端 | `pnpm test` + 起服务 curl | 测试全绿；`/api/health` 200；关键接口返回真实数据 |
 | Web 后台 | `pnpm dev` + 浏览器点 | 登录、看板、列表筛选、审核落库可用；无 console error |
 | 安卓 | `flutter analyze` + 真机/模拟器 | 首页/播放器/家长门可交互；断网有兜底 |
-| 设计稿 | 浏览器打开 `docs/design/*/index.html` | 页面可切换、数据真实感、符合设计 token |
 | 任务卡插件 | `pnpm verify` | 测试全绿、bundle ≤150 KB、ABI/预算通过 |
 
 ## 5. 介入指标（任务卡系统的价值度量）
@@ -69,14 +72,14 @@
 **期望形态**：人工消息以「目标」为主，返工纠偏趋近 0；决策大部分由「批准」完成。
 **当前基线（2026-11-09 首日）**：人工消息 4、批准 5、作答 3、返工 1（生产库风险）。
 
-统计方式：`node scripts/dev-metrics.mjs [sessionId]`（不传则聚合所有 story 会话；输出 perSession + totals + 卡片计数 approved/answered/confirmed）。
+统计方式（2026-11-13 起）：`scripts/dev-metrics.mjs` 已随仓库收敛删除；需要时看任务卡插件的度量产物。
 当前实测（2026-11-09 22:50，两个会话）：turns 21、human 9、cardAnswer 13；卡片 21 张、approved 7、answered 5、confirmed 9、autoApplied 1。
 
 ## 6. 红线
 
 1. **生产库只读**：任何写操作先写脚本、等批准；开发一律 dev 库。
 2. **不发版**：不 push `main`、不触发 CI、不动生产容器；上线由人单独决定。
-3. **老站不动**：`index.html`/`js/`/`css/` 原地保留，M4 才迁 `legacy/`。
+3. **老站仍在线上**：`index.html`/`js/`/`css/` 原地保留并由 `story.xirizhi.cn` 提供服务；`legacy/` 迁移未做，也不着急做。
 4. **儿童内容安全**：恐怖/怪谈默认不进儿童端；年龄分级需人工复核，不能只靠启发式。
 5. **付费透明**：价格、周期、取消入口同屏；儿童端不接第三方广告。
 6. **插件改动**：先改 `src/shared` 契约，再 `pnpm verify`，不调阈值。
@@ -90,7 +93,7 @@
 | M2 | Web 后台 MVP（登录/看板/内容/审核/运营/数据） | ✅ 46+66 测试，真实登录与数据 |
 | M2.1 | 正文写回、排行/趋势、推荐位增删、管理员管理 | ⏳ backlog |
 | M3 | 安卓 App MVP（Flutter） | ✅ analyze 0 issue、58 测试通过、9 屏接真接口（无 APK，需 Android SDK） |
-| M4 | 联调、数据迁移、上线 | ⏳ 待开始 |
+| M4 | 联调、数据迁移、上线 | ✅ 完成（2026-11-13 生产已上线，见 `24-prod-deploy-20261113.md`） |
 
 ## 8. 文档地图
 
@@ -103,7 +106,7 @@
 | `04-dev-log.md` | 开发日志、首轮交付结果 |
 | `05-task-card-review.md` | 任务卡系统真实问题与修复 |
 | `06-working-baseline.md` | 本文：长期开发怎么干 |
-| `docs/design/` | OpenDesign 产物与截图 |
+| `docs/design/` | **已移出仓库**（2026-11-13），原型与截图不在 git 历史里 |
 
 ## 9. 工具链（2026-11-09 补）
 

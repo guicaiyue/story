@@ -1,5 +1,15 @@
 # 小故事铺 2.0 · 开发日志与任务卡实测
 
+> **2026-11-13 读前须知**：本文是**按天的历史日志**，记录当时怎么干、踩了什么坑，
+> 内容原样保留（这是踩坑档案的价值所在）。
+> 其中提到的路径现在已不存在，读的时候自行折算：
+> - `apps/app/**`（Flutter）→ 已移出仓库，源码归档 NAS `backup/src/story-app-0.1.2-src.tar.gz`
+> - `docs/design/**`（设计原型与截图）→ 已移出仓库，不在 git 历史里
+> - `docker-compose.m4.yml`、`scripts/m4-*.sh`、`scripts/design-shots.*`、`scripts/dev-metrics.mjs` → 已删除
+> - 分支 `feat/platform-v2` → 已合并进 `main` 并删除
+>
+> 想知道**现在**是什么样，看 [docs/README.md](../README.md) 或 [handover.md](../handover.md)。
+
 > 这份日志有两个用途：1) 记录产品开发进展与决策；2) 记录「任务卡系统」在真实开发中的表现，作为插件优化的依据。
 > 数据来源：dsh-dev 会话事件（`data/dsh/sessions/.../session.v4.jsonl.zstd`）、任务卡 `cards.json` / `records.json` / `cards.json.journal/`、面板操作记录。
 

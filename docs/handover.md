@@ -1,38 +1,39 @@
 # 交接一页
 
-写于 2026-11-12 夜，**2026-11-13 上午更新为「已上线」**。给三个月后的自己，或任何接手的人：**只需要读这一页，再按图索骥。**
+写于 2026-11-12 夜，2026-11-13 更新为「已上线」，**2026-11-13 傍晚按仓库收敛后的实际形态复核**。
+给三个月后的自己，或任何接手的人：**只需要读这一页，再按图索骥。**
 
 ---
 
 ## 一句话现状
 
-三端做完、测试全绿、**生产已上线**（`api-story.xirizhi.cn` / `admin-story.xirizhi.cn`，HTTPS healthy）、
-0.1.2 APK 已用**正式签名**出包。两处没做到的地方（OpenDesign 出稿、卡片派生新会话）写在下面，不藏着。
+1.0 静态站 + 2.0 服务端/运营后台都在生产跑着（`story.xirizhi.cn` / `api-story.xirizhi.cn` /
+`admin-story.xirizhi.cn`，HTTPS healthy，证书到 **2027-02-09**）。
+仓库已收敛到**唯一版本 0.1.2**、**唯一分支 `main`**、**唯一 tag `v0.1.2`**。
+Flutter 客户端已移出仓库（源码归档在 NAS）。
 
 ## 三分钟上手
 
 ```bash
 cd /vol1/1000/开发/NAS/story
 
-./scripts/preflight.sh          # 迁移账本 + 三端测试（~80s）
-./scripts/preflight.sh --e2e    # 再加端到端 16 步（临时容器 + 副本库）
-./scripts/design-shots.sh       # 三份原型 → 17 张 PNG
-
-cd ../dsh-plugins/dsh-task-cards
-./scripts/preflight.sh          # pnpm verify + 度量快照
+./scripts/prod-deploy.sh status   # 只读：生产库 / 容器 / 域名
+./scripts/preflight.sh            # 迁移账本 + 服务端/后台测试（在 dsh-dev 容器里跑）
+./scripts/preflight.sh --e2e      # 再加端到端 16 步（临时容器 + 副本库）
 ```
 
-生成物：`docs/design/screenshots/{phone,tablet,admin}/`；插件仓那边产出 `docs/metrics/<日期>.json` 与 `docs/metrics/history.md`。
+`preflight.sh` 必须在开发容器里跑：`docker exec dsh-dev bash -lc 'cd /vol1/1000/开发/NAS/story && ./scripts/preflight.sh'`
+（宿主上没有 pnpm，也解析不到 `story-dev-postgres`）。
 
 ## 已上线（2026-11-13）
 
 | 项 | 结果 |
 | --- | --- |
-| 生产库迁移 | **5/5**（`story_main=2197`、`categories=15→14`、audio 表 2 张、`account.status`、唯一约束） |
+| 生产库迁移 | **5/5**（`story_main=2197`、`categories=14`、audio 表 2 张、`account.status`、唯一约束） |
 | 库账号 | `story_app`（最小权限，`public` 无 CREATE，实测登录通过） |
 | 生产账号 | 1 个 admin（`acc_prod_admin_01`，手机号**占位** `13800138000`，待换真号） |
-| 容器 | `story-server-prod` / `story-admin-prod` 均 healthy；域名 HTTPS 200 |
-| APK | `releases/storynook-0.1.2.apk`，48.9 MiB，versionCode 3，正式签名 |
+| 容器 | `story-server-prod` / `story-admin-prod` 均 healthy；静态站 `story` 由 Watchtower 跟随 `main` |
+| 版本 | **0.1.2**（唯一 tag / 唯一 GitHub Release），APK 48.9 MiB，versionCode 3，正式签名 |
 | 执行记录 | `docs/product/24-prod-deploy-20261113.md`（含逐条命令、断言、回滚） |
 
 ## 还剩什么
@@ -40,18 +41,19 @@ cd ../dsh-plugins/dsh-task-cards
 | # | 事 | 谁做 | 依据 |
 | --- | --- | --- | --- |
 | ① | 管理员手机号换真号（一条 UPDATE） | 产品负责人 | `24-…md` §5 |
-| ② | TLS 证书到期（北京时间 11-14 02:02） | 产品负责人（已声明在处理） | `24-…md` §9 |
-| ③ | APK 真机验收（无 adb 设备） | 产品负责人 | 装机跑：登录→首页→播放→收藏→平板横屏 |
-| ④ | 真实短信通道（现用固定码，非 123456） | 上架前 | `24-…md` §9 |
-| — | `apps/` 那批文件提交 | 待定 | `16-commit-plan.md`（5 个提交） |
+| ② | APK 真机验收（无 adb 设备） | 产品负责人 | 装机跑：登录→首页→播放→收藏→平板横屏 |
+| ③ | 真实短信通道（现用固定码，非 123456） | 上架前 | `24-…md` §9 |
+
+~~TLS 证书到期~~：已续期，现证书 `notAfter=2027-02-09`（三个域名同一张 `CN=xirizhi.cn`）。
 
 **备份就在改动之前**：`/vol1/1000/story/backup/story-predeploy-20261113.dump`（4.13 MB）。
 keystore 备份：`/vol1/1000/story/backup/keystore/`（**丢了就只能换包名重发**，请异地再存一份）。
+App 源码归档：`/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`。
 
 ## 两处没做到的
 
-1. **OpenDesign 出设计稿**：本会话没有它的工具入口，改用「手写 HTML 原型 + 无头浏览器逐屏截图复核」。
-   要补：把 OpenDesign 接进会话或用它的界面，以 `docs/design/**` 现有原型为输入重出视觉定稿。
+1. **OpenDesign 出设计稿**：当时会话没有它的工具入口，改用「手写 HTML 原型 + 无头浏览器逐屏截图复核」。
+   设计原型与截图已随 `docs/design/` 移出仓库，要重做视觉定稿得先找回那批原型（不在 git 历史里）。
 2. **用卡片指挥一个全新开发会话**：插件的执行层只把答复投回**提问的那个会话**
    （插件仓 `src/host/execution/session.ts`），没有「从卡片派生新会话」的能力。
    要补：加一个 `spawn` 适配器。这不是文案问题，是缺一块能力。
@@ -76,7 +78,7 @@ keystore 备份：`/vol1/1000/story/backup/keystore/`（**丢了就只能换包�
 | --- | --- | --- |
 | 彩排库 ≠ 冒烟库 | `--e2e` 用彩排库时后台 4 步必然 403（那里没有管理员） | 用 `E2E_DB=story_e2e_seed` |
 | 命令里 `pnpm` 找不到 | `docker exec ... sh -c 'pnpm'` 报 command not found | 用 `bash -lc` |
-| 无头截图四连坑 | EACCES / 找不到 puppeteer / 屏与屏状态串 / 截到半截 | 见 `docs/design/README.md` §坑 |
+| 无头截图四连坑 | EACCES / 找不到 puppeteer / 屏与屏状态串 / 截到半截 | 出图脚本与原型已随 `docs/design/` 移出仓库，重做时从头搭 |
 | 面板 API 401 | 少登录 cookie | `docker logs dsh-dev \| grep token=` 取 URL 换 cookie，见插件仓 `dsh-plugins/dsh-task-cards/docs/commands.md` |
 | 度量被测试污染 | 数字莫名其妙涨 | 计数器写盘前先隔离测试环境（Horon 122） |
 
@@ -94,5 +96,6 @@ keystore 备份：`/vol1/1000/story/backup/keystore/`（**丢了就只能换包�
 ## 交接时的一句话建议
 
 **域名现在真的打得开了**——先装 0.1.2 的 APK 上真机走一遍（登录→听故事→收藏→平板横屏），
-这一步只有真机能验。之后才是提交、发版、换管理员真号、接短信通道。
+这一步只有真机能验。之后才是换管理员真号、接短信通道。
 别在没有备份的情况下动生产；备份与回滚步骤都在 `24-prod-deploy-20261113.md` §10。
+提交与发版这两件事 2026-11-13 已经做完，不用再排进计划。

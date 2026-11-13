@@ -1,6 +1,9 @@
 # M4 · 联调、打包与上线方案
 
-> 状态：**方案草案，等开发会话执行；生产环境操作一律先出脚本、等批准。**
+> 状态：**已执行完毕（2026-11-13 生产上线）**。本文作为 M4 方案档案保留，
+> 实际执行记录见 [24-prod-deploy-20261113.md](24-prod-deploy-20261113.md)。
+> 文中提到的 `docker-compose.m4.yml`、`m4-smoke.sh`、`m4-migrate-rehearsal.sh`
+> 已在 2026-11-13 仓库收敛时删除，本文命令不可直接复制执行。
 > 依据：`01-product-brief.md` §8 里程碑、`02-architecture.md`、`03-decisions.md` D7（生产库只读）。
 
 ## 1. M4 目标

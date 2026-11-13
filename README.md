@@ -8,8 +8,9 @@
 | 2.0 服务端 | `apps/server` | Node 22 + TS + Fastify 5 + Prisma 6 | <https://api-story.xirizhi.cn> |
 | 2.0 运营后台 | `apps/admin` | React 18 + Vite + Ant Design 5，镜像内 nginx | <https://admin-story.xirizhi.cn> |
 
-> Flutter 客户端（`apps/app`）已移出本仓库。源码与历史见 `backup/pre-cleanup` 分支，
-> APK 走 GitHub Releases 附件，构建产物归档在 NAS `/vol1/1000/story/backup/apk/`。
+> Flutter 客户端（`apps/app`）已移出本仓库，不在任何分支上。0.1.2 源码归档在 NAS
+> `/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`（118 KB / 101 文件），
+> 签名材料在 `backup/keystore/`，APK 走 GitHub Releases 附件（`backup/apk/` 留有副本）。
 
 ## 文档索引
 

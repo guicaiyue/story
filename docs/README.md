@@ -58,7 +58,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [product/release-notes-0.1.2.md](product/release-notes-0.1.2.md) | 0.1.2 发版说明（平板适配，**已出包**：versionCode 3 / 正式签名） |
-| [product/16-commit-plan.md](product/16-commit-plan.md) | `apps/` 那批工作的提交方案（**已于 2026-11-13 执行**，见 `feat/platform-v2`） |
+| [product/16-commit-plan.md](product/16-commit-plan.md) | `apps/` 那批工作的提交方案（**已于 2026-11-13 执行**并合并进 `main`） |
 
 ## 近期的三份复核记录
 
@@ -78,8 +78,8 @@ scripts/              宿主侧脚本（preflight 预检、prod-deploy 上线一
 docs/product          产品、决策、上线、发布
 ```
 
-> Flutter 客户端已移出本仓库：源码在 `backup/pre-cleanup` 分支，APK 走 GitHub Releases，
-> 构建产物归档在 NAS `/vol1/1000/story/backup/apk/`。
+> Flutter 客户端已移出本仓库，不在任何分支上：0.1.2 源码归档在 NAS
+> `/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`，APK 走 GitHub Releases。
 
 ## 一条硬规矩
 

@@ -1,36 +1,42 @@
-# 11 · dev 环境清理清单（待合并授权）
+# 11 · dev 环境遗留库清理清单（**仍待授权**）
 
-> 状态：**仅登记，未执行**。按产品负责人要求（任务卡 `c-mwa8wn9g-blrzm`），
-> 这些遗留库**先记入清单，等 M2.1 收尾时与其他 dev 遗留合并成一次授权再执行**。
->
-> agent 不单独删任何一个库；下列命令**都还没跑过**。
->
-> 登记时间：**2026-11-10 15:50 (Asia/Shanghai)**；**2026-11-11 新增登记**
-> `story_m4_rehearsal` 与 `.m4-rehearsal/` 下 3 份快照。数据均为只读查询。
+> 状态：**仅登记，未执行**。agent 不单独删任何一个库；下列命令**都还没跑过**。
 > 目标容器：`story-dev-postgres`（**开发库容器，非生产**）。
+>
+> 登记 2026-11-10 15:50；2026-11-11 补 `story_m4_rehearsal` 与演练快照；
+> **2026-11-13 18:00 按实际库列表重测**（见 §2，比原登记多出 4 个）。
+>
+> ⚠️ 注意：`scripts/m4-migrate-rehearsal.sh` 与 `docker-compose.m4.yml` 已于
+> 2026-11-13 仓库收敛时删除，所以 `.m4-rehearsal/` 快照**不会再自动重建**，
+> 这条「删了下次演练会自动重建」的论证对现状不再成立（但删掉仍无损失）。
 
 ---
 
 ## 1. 为什么要清理
 
-dev 容器上累积了 **4** 个只用于验证/演练的临时库（合计约 **70MB**），
-另加 `.m4-rehearsal/` 下 **3 份演练快照（13MB）**。
+dev 容器上累积了 **5** 个只用于验证/演练的临时库（合计约 **87 MB**，2026-11-13 重测）。
 它们不是任何流程的运行依赖，留着只是占空间、并让「哪些库是真的」变模糊。
 
 **不影响任何功能**：M1–M4、M2.1 的测试与验收都已通过，这些库的使命已结束。
+（`story_e2e_seed` 是例外——它仍被 `preflight.sh --e2e` 使用，必须留。）
 
 ---
 
 ## 2. 库清单（实测）
 
-| 库 | 大小 | 来源 | 处置 | 风险 |
+**2026-11-13 18:00 实测（8 个库，合计约 130 MB）：**
+
+| 库 | 大小 | 创建时间 | 来源 | 处置 |
 | --- | --- | --- | --- | --- |
-| `story_dev` | 20 MB | **主开发库**（真正在用） | **保留** | — |
-| `story_test` | 8.7 MB | 测试库，`tests/setup-test-db.ts` 每次重建 | **保留** | — |
-| `story_m21_r1` | 18 MB | M2.1 验收时我从快照建的克隆（取回 story 8 原文用） | **待删** | 无 |
-| `story_probe_mig` | 17 MB | 早期迁移探查遗留（`app_tables=11`、`main=2197`） | **待删** | 无 |
-| `story_rehearsal` | 17 MB | 早期演练遗留（**注意**：与脚本用的 `story_m4_rehearsal` 不是同一个） | **待删** | 无 |
-| `story_m4_rehearsal` | ~~18 MB~~ **已删** | 3-b 手工回滚演练的产物 | **✅ 已于 2026-11-11 删除** | — |
+| `story_dev` | 20 MB | 2026-11-09 | **主开发库**（真正在用） | **保留** |
+| `story_test` | 8.7 MB | 2026-11-09 | 测试库，`tests/setup-test-db.ts` 每次重建 | **保留** |
+| `story_m21_r1` | 18 MB | 2026-11-10 | M2.1 验收时从快照建的克隆（取回 story 8 原文用） | **待删** |
+| `story_probe_mig` | 17 MB | 2026-11-09 | 早期迁移探查遗留 | **待删** |
+| `story_rehearsal` | 17 MB | 2026-11-09 | 早期演练遗留（与脚本用的 `story_m4_rehearsal` 不是同一个） | **待删** |
+| `story_3c_162625` | 17 MB | 2026-11-11 | **新登记**：3-c 生产迁移前的探查克隆（`story_main=2197`，与主库同内容） | **待删** |
+| `story_m12_rehearsal` | 17 MB | 2026-11-12 | **新登记**：M1→M2 迁移彩排产物 | **待删** |
+| `story_e2e_seed` | 18 MB | 2026-11-12 | **保留**：`preflight.sh --e2e` 的种子库（`E2E_DB=story_e2e_seed`），删了端到端冒烟会失败 | **保留** |
+| `story_m4_rehearsal` | ~~18 MB~~ **已删** | — | 3-b 手工回滚演练产物 | ✅ 2026-11-11 已删除 |
 
 > **关于 `story_m4_rehearsal`（2026-11-11 收尾，状态：已删除）**：
 > 它本来是 `scripts/m4-migrate-rehearsal.sh` 每次自建自删的中间库，正常情况下
@@ -93,15 +99,18 @@ story_dev|16          # 只有主库有连接（dev server + tts-backfill）
 合并授权后一次执行：
 
 ```bash
-# 1) 遗留库（dev 容器，非生产）
+# 1) 遗留库（dev 容器，非生产）—— 2026-11-13 重测后为 5 个
 docker exec story-dev-postgres psql -U storydev -d story_dev -v ON_ERROR_STOP=1 \
   -c 'DROP DATABASE IF EXISTS story_m21_r1;' \
   -c 'DROP DATABASE IF EXISTS story_probe_mig;' \
-  -c 'DROP DATABASE IF EXISTS story_rehearsal;'
-# 注：story_m4_rehearsal 已于 2026-11-11 单独获批删除，不在本批命令内
+  -c 'DROP DATABASE IF EXISTS story_rehearsal;' \
+  -c 'DROP DATABASE IF EXISTS story_3c_162625;' \
+  -c 'DROP DATABASE IF EXISTS story_m12_rehearsal;'
+# 保留 story_dev / story_test / story_e2e_seed（后者是 --e2e 的种子库）
+# 注：story_m4_rehearsal 已于 2026-11-11 单独获批删除
 
-# 2) 演练快照（重建于下次演练；整目录删）
-rm -rf /workspace/story/.m4-rehearsal
+# 2) 演练快照（脚本已删，不会自动重建；整目录删）
+rm -rf /vol1/1000/开发/NAS/story/.m4-rehearsal
 ```
 
 **验证点**（执行后只读复核）：
@@ -109,7 +118,7 @@ rm -rf /workspace/story/.m4-rehearsal
 ```bash
 docker exec story-dev-postgres psql -U storydev -d story_dev -tAc \
   "SELECT datname FROM pg_database WHERE datname LIKE 'story%' ORDER BY 1;"
-# 期望恰好剩：story_dev, story_test
+# 期望恰好剩：story_dev, story_test, story_e2e_seed
 
 ls -d /workspace/story/.m4-rehearsal 2>/dev/null || echo "快照目录已清"
 ```
@@ -150,6 +159,4 @@ ls -d /workspace/story/.m4-rehearsal 2>/dev/null || echo "快照目录已清"
 | `10-prod-migration-baseline.md` | **生产**M1 冻结基线（与本文无关，勿混） |
 | **本文档** | **dev** 环境遗留库清理登记（待合并授权） |
 
-- 复测记录（2026-11-11，插件重启后）：本文档中的 SQL 仅作**文本示例**说明，例如 `DROP TABLE demo;`，不构成执行指令。
-
-审核记录：edit 审计验证（可移除）
+- 复测记录（2026-11-11，插件重启后）：本文档中的 SQL 仅作**文本示例**说明，不构成执行指令。

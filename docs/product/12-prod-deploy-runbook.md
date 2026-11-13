@@ -1,10 +1,14 @@
-# 12 · 生产 docker 部署 runbook（方案，未执行）
+# 12 · 生产 docker 部署 runbook
 
-> 状态：**方案已落盘，未执行任何启动 / 未写生产库**（2026-11-11）。
+> 状态：**已于 2026-11-13 执行并上线**（方案落盘 2026-11-11）。本文现在是可重复执行的
+> runbook：容器 `story-server-prod` / `story-admin-prod` 在跑，生产库已应用 5 条迁移。
+> 首次执行记录见 [24-prod-deploy-20261113.md](24-prod-deploy-20261113.md)。
 > 配套文件：`docker-compose.prod.yml`、`.env.prod.example`、
 > `docker/nginx/story-prod.conf`（可选）。
 >
-> 红线：生产库只读（DDL 待批准）、不碰 Vercel/Cloudflare、不 push main。
+> 红线：生产库只读（DDL 待批准）、不碰 Vercel/Cloudflare。
+> 注：2026-11-13 起 push `main` **就是**发布通道（CI 构建镜像 + Watchtower 自动更新静态站），
+> 当年「不 push main」的约束已随上线流程变更失效。
 > **本 runbook 中标注「需批准」的步骤，执行前逐项确认。**
 
 ---

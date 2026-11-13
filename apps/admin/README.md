@@ -3,7 +3,7 @@
 给内容团队用的运营后台：选品、审核、上架、看数据。
 
 技术栈：**React 18 + Vite + TypeScript + Ant Design 5**。
-视觉规格来自 [`docs/design/admin-web/`](../../docs/design/admin-web/)（纸感后台）。
+视觉规格（纸感后台）的设计原型已随 `docs/design/` 移出仓库，token 见本文末「视觉」一节。
 
 > ⚠️ **生产库只读（03-decisions D7）**：本后台联调的是 **dev 库**（`story-dev-postgres`），
 > 不碰生产库、不碰生产配置。

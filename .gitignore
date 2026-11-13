@@ -14,13 +14,12 @@ dist/
 # 服务端 TTS 合成缓存（MP3 落盘，不进仓库）
 .audio-cache/
 
-# Flutter/Dart 构建产物与验证截图
+# 通用构建产物（服务端/后台）
 build/
-.dart_tool/
-.shots/
 
-# M4 迁移演练快照（pg_dump 产物，可重建；见 scripts/m4-migrate-rehearsal.sh）
-.m4-rehearsal/
+# Flutter 已移出仓库；保留这条以防将来把源码放回来时误提交 468M 的 .dart_tool
+.dart_tool/
+
 # 发布产物：APK/AAB 体积大，走 GitHub Releases 附件而不是仓库
 releases/*.apk
 releases/*.aab
