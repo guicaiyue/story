@@ -15,7 +15,7 @@
 | 改完代码检查有没有坏 | `./scripts/preflight.sh`（详见下文「三条命令」） |
 | **决定要不要上生产（历史清单，已执行）** | [product/20-approval-sheet.md](product/20-approval-sheet.md) |
 | 上线 / 重新上线（生产） | `./scripts/prod-deploy.sh status\|backup\|build\|migrate\|grants\|admin\|up\|smoke`；手册见 [product/12-prod-deploy-runbook.md](product/12-prod-deploy-runbook.md) |
-| 发版 | [product/14-release-checklist-0.1.1.md](product/14-release-checklist-0.1.1.md) + `release-notes-0.1.2.md` |
+| 发版 | [product/release-notes-0.1.2.md](product/release-notes-0.1.2.md) |
 | 查某个决定为什么这么定 | [product/03-decisions.md](product/03-decisions.md) |
 
 ## 三条命令
@@ -57,8 +57,6 @@
 
 | 文档 | 内容 |
 | --- | --- |
-| [product/14-release-checklist-0.1.1.md](product/14-release-checklist-0.1.1.md) | 0.1.1 逐项校验（APK 拆包核验、源码一致性） |
-| [product/release-notes-0.1.1.md](product/release-notes-0.1.1.md) | 0.1.1 release notes |
 | [product/release-notes-0.1.2.md](product/release-notes-0.1.2.md) | 0.1.2 发版说明（平板适配，**已出包**：versionCode 3 / 正式签名） |
 | [product/16-commit-plan.md](product/16-commit-plan.md) | `apps/` 那批工作的提交方案（**已于 2026-11-13 执行**，见 `feat/platform-v2`） |
 
