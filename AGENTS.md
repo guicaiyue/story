@@ -11,7 +11,7 @@ Flutter 客户端已移出仓库。
 ## 怎么跑
 
 ```bash
-# 1.0 静态站本地开发（零依赖，Node 18+）
+# 1.0 静态站本地开发（零依赖，Node 18+；1.0 已退役，仅源码查阅用）
 node scripts/dev-server.js                  # → http://127.0.0.1:5173
 
 # 契约测试（CI 同款，四个都要过）
@@ -19,7 +19,7 @@ node test-umami-tracker.js && node test-prest-client.js \
   && node test-story-analytics.js && node test-edge-tts-analytics.js
 
 # 服务端/后台测试 —— 必须在开发容器里跑
-docker exec dsh-dev bash -lc 'cd /vol1/1000/开发/NAS/story && ./scripts/preflight.sh'
+docker exec dsh-dev bash -lc 'cd /workspace/story && ./scripts/preflight.sh'
 
 # 生产状态（只读）
 ./scripts/prod-deploy.sh status
@@ -52,12 +52,15 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
 3. **镜像构建只能用 alpine 基础镜像 + 官方 `registry.npmjs.org`**。
    本机 registry 源不给 Debian tag；npmmirror 从构建容器不可达。详见 README「构建期的四个坑」。
 4. **生产库 `story` 只读**。写操作走 runbook 里标注「需批准」的步骤；开发一律用 `story-dev-postgres`。
-5. **推 `main` 就是发布**。CI 跑测试 → 构建镜像 → 触发 Watchtower 自动更新静态站。
-   别为了「先存一下」往 main 推。
+5. **推 `main` 现在只跑契约测试，不发布任何东西**（2026-11-14 1.0 退役后，构建镜像那步已删）。
+   2.0 上线必须手动跑 `./scripts/prod-deploy.sh`。反过来说：别再以为「推上去就等于上线了」，
+   改完 `apps/` 不跑 prod-deploy，生产还是旧代码。
 
-## 当前状态（2026-11-13）
+## 当前状态（2026-11-14）
 
 - 唯一分支 `main`，唯一版本 **0.1.2**，唯一 tag `v0.1.2`，唯一 GitHub Release。
-- 生产已上线：静态站 / 服务端 / 后台三域名 200，容器 healthy，TLS 到 2027-02-09。
+- 生产在跑：**服务端 / 后台两个**域名 200，容器 `story-server-prod` / `story-admin-prod` healthy，
+  TLS 到 2027-02-09。1.0 静态站已于 2026-11-14 退役（决策 D9），`story.xirizhi.cn` 返回 404 是正常的。
 - 待办：管理员手机号换真号、APK 真机验收、接真实短信通道。
-- 已知遗留：`story-dev-postgres` 上有 5 个待删的演练库，登记在 `docs/product/11-dev-cleanup.md`，**未获授权，不要自己删**。
+- 已知遗留：`story-dev-postgres` 上只剩 `story_dev` / `story_test` / `story_e2e_seed` 三个库，演练库已清完
+  （`story_e2e_seed` 是 `preflight --e2e` 的种子库，**别删**）。

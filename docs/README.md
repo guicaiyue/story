@@ -17,6 +17,7 @@
 | 上线 / 重新上线（生产） | `./scripts/prod-deploy.sh status\|backup\|build\|migrate\|grants\|admin\|up\|smoke`；手册见 [product/12-prod-deploy-runbook.md](product/12-prod-deploy-runbook.md) |
 | 发版 | [product/release-notes-0.1.2.md](product/release-notes-0.1.2.md) |
 | 查某个决定为什么这么定 | [product/03-decisions.md](product/03-decisions.md) |
+| **想加自动化开发 / 或看它怎么派活的（事件表与用法）** | [../scripts/autoloop/README.md](../scripts/autoloop/README.md) |
 
 ## 三条命令
 
