@@ -1,0 +1,14 @@
+# 构建上下文 = 仓库根目录。默认排除一切，只放行构建服务端镜像必需的文件。
+#
+# 这一点很重要：仓库里有 apps/server/.audio-cache（537MB MP3）、.dev-data（9MB
+# 真实内容 dump）、node_modules（507MB）等。不隔离的话每次 docker build 都要
+# 往 daemon 传 1.4GB；隔离后实测只传几百字节。
+**
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!apps
+!apps/server
+!apps/server/package.json
+!apps/server/tsconfig.json
+!apps/server/src
+!apps/server/prisma

@@ -1,0 +1,261 @@
+// 小故事铺 2.0 — M1 Prisma schema
+//
+// Reflects the REAL production database (verified 2026-11-09), not the
+// single-table assumption in 02-architecture. See docs/product/03-decisions.md §1:
+//   public.story_main     -> Story        (metadata)
+//   public.story_content  -> StoryContent (body text, 1:1 with Story)
+//   public.story_category -> Category
+// New tables live in the isolated `app` schema and are NOT exposed to pREST (D1/D2).
+//
+// The legacy `public` tables are read/written in place — no data migration, no legacyId.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "app"]
+}
+
+// ---------------------------------------------------------------------------
+// Content — legacy `public` tables
+// ---------------------------------------------------------------------------
+
+model Category {
+  id      Int     @id @default(autoincrement())
+  name    String
+  sortId  Int?    @default(0) @map("sort_id")
+  stories Story[]
+
+  @@map("story_category")
+  @@schema("public")
+}
+
+model Story {
+  id           Int       @id @default(autoincrement())
+  categoryId   Int?      @map("category_id")
+  title        String
+  // Denormalised legacy copy of the category name. Reads must prefer
+  // `category.name`; this stays only for old-site compatibility (03-decisions §5).
+  categoryName String?   @map("category_name")
+  excerpt      String?
+  // Character count of the body — NOT playback duration. `durationSec` is separate.
+  length       Int?
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  // Added by the M1 migration (03-decisions D3).
+  ageBand     String   @default("3-6") @map("age_band")
+  tags        String[] @default([])
+  status      String   @default("published")
+  durationSec Int      @default(0) @map("duration_sec")
+  coverUrl    String?  @map("cover_url")
+  audioUrl    String?  @map("audio_url")
+  featured    Boolean  @default(false)
+  publishedAt DateTime? @map("published_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  category    Category?      @relation(fields: [categoryId], references: [id])
+  content     StoryContent?
+  progresses  Progress[]
+  favorites   Favorite[]
+  plays       PlayEvent[]
+
+  @@index([status, ageBand])
+  @@index([categoryId])
+  @@map("story_main")
+  @@schema("public")
+}
+
+model StoryContent {
+  id      Int     @id @default(autoincrement())
+  storyId Int?    @unique @map("story_id")
+  content String?
+  story   Story?  @relation(fields: [storyId], references: [id])
+
+  @@map("story_content")
+  @@schema("public")
+}
+
+// ---------------------------------------------------------------------------
+// User — new `app` schema (never exposed through pREST)
+// ---------------------------------------------------------------------------
+
+model Account {
+  id        String   @id @default(cuid())
+  // Nullable + unique so guest-upgrade rules can be decided later (D6).
+  phone     String?  @unique
+  nickname  String   @default("")
+  role      String   @default("parent") // parent | admin | editor
+  /// active | disabled —— 停用后不能登录，且既有 token 在 admin 路由上被拒。
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family   Family?
+  children Child[]
+  setting  Setting?
+  progresses Progress[]
+  favorites  Favorite[]
+
+  @@map("account")
+  @@schema("app")
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  accountId String   @unique @map("account_id")
+  name      String   @default("我的家")
+  createdAt DateTime @default(now()) @map("created_at")
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("family")
+  @@schema("app")
+}
+
+model Child {
+  id        String    @id @default(cuid())
+  accountId String    @map("account_id")
+  nickname  String
+  birthday  DateTime?
+  ageBand   String    @default("3-6") @map("age_band")
+  avatar    String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("child")
+  @@schema("app")
+}
+
+// ---------------------------------------------------------------------------
+// Playback
+// ---------------------------------------------------------------------------
+
+model Progress {
+  id          String   @id @default(cuid())
+  accountId   String   @map("account_id")
+  storyId     Int      @map("story_id")
+  positionSec Int      @default(0) @map("position_sec")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, storyId])
+  @@index([accountId])
+  @@map("progress")
+  @@schema("app")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  accountId String   @map("account_id")
+  storyId   Int      @map("story_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, storyId])
+  @@index([accountId])
+  @@map("favorite")
+  @@schema("app")
+}
+
+model PlayEvent {
+  id          String   @id @default(cuid())
+  accountId   String?  @map("account_id")
+  childId     String?  @map("child_id")
+  storyId     Int      @map("story_id")
+  event       String // start | pause | complete | stop
+  positionSec Int      @default(0) @map("position_sec")
+  at          DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([at])
+  @@map("play_event")
+  @@schema("app")
+}
+
+model Setting {
+  id            String  @id @default(cuid())
+  accountId     String  @unique @map("account_id")
+  dailyLimitMin Int     @default(0) @map("daily_limit_min")
+  sleepTimerMin Int     @default(30) @map("sleep_timer_min")
+  ageFilter     String  @default("3-6") @map("age_filter")
+  parentGate    Boolean @default(true) @map("parent_gate")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("setting")
+  @@schema("app")
+}
+
+// ---------------------------------------------------------------------------
+// Ops & audit
+// ---------------------------------------------------------------------------
+
+model Banner {
+  id         Int     @id @default(autoincrement())
+  title      String
+  imageUrl   String  @map("image_url")
+  targetType String  @default("story") @map("target_type") // story | category | url
+  targetId   String? @map("target_id")
+  sort       Int     @default(0)
+  status     String  @default("active")
+
+  @@map("banner")
+  @@schema("app")
+}
+
+model AuditLog {
+  id      String   @id @default(cuid())
+  actorId String   @map("actor_id")
+  action  String // story.publish | story.reject | login ...
+  target  String
+  detail  Json?
+  at      DateTime @default(now())
+
+  @@index([at])
+  @@map("audit_log")
+  @@schema("app")
+}
+
+/// 服务端 TTS 合成缓存索引（所有者决策 c-mw99xnkq-2ehou）。
+/// MP3 字节落盘（AUDIO_CACHE_DIR），库里只存元数据与真实时长。
+model AudioCache {
+  storyId     Int      @id @map("story_id")
+  filePath    String   @map("file_path")
+  mimeType    String   @default("audio/mpeg") @map("mime_type")
+  byteSize    Int      @map("byte_size")
+  /// 由 MP3 本身量出，因此是真实播放时长（不是正文字数）。
+  durationSec Int      @map("duration_sec")
+  voice       String
+  charCount   Int      @default(0) @map("char_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  lastHitAt   DateTime @default(now()) @map("last_hit_at")
+  hitCount    Int      @default(0) @map("hit_count")
+
+  @@index([lastHitAt(sort: Desc)])
+  @@map("audio_cache")
+  @@schema("app")
+}
+
+/// 批量回填的队列/审计，便于断点续跑与定位失败条目。
+model AudioJob {
+  id        String   @id @default(cuid())
+  storyId   Int      @map("story_id")
+  state     String   @default("pending") // pending|running|done|failed|skipped
+  attempts  Int      @default(0)
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@index([state])
+  @@index([storyId])
+  @@map("audio_job")
+  @@schema("app")
+}

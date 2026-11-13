@@ -1,0 +1,16 @@
+# Monorepo layout per 02-architecture §1.
+packages:
+  - 'apps/server'
+  - 'apps/admin'
+  - 'packages/*'
+
+# prisma + esbuild fetch/compile native binaries in postinstall.
+# pnpm 11 requires explicit opt-in and rejects this key inside package.json.
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+  esbuild: true
+  # msedge-tts only declares `preinstall: npx only-allow pnpm`; its dist/ ships
+  # prebuilt and is what we import, so the script does not need to run.
+  msedge-tts: false
