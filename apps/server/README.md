@@ -80,6 +80,11 @@ pnpm test:setup  # 只重建测试库（灌入固定 fixture）
 `tests/helpers/test-db.ts` 会先建 legacy 表、再跑真实迁移、最后写入少量固定数据，
 因此断言可以精确计数（生产库的 2197 条与 fixture 的 4 条互不干扰）。
 
+`pnpm test` 走 `scripts/run-tests.mjs`，开跑前先在 `story_test` 上拿一把 Postgres 咨询锁，
+**同时只允许一套测试**动这个库；后到的会打印一行「另一个测试进程正在用这个库」然后排队等。
+原因：两套测试会互相 `TRUNCATE` / 重建表，2026-11-13 就因此出过
+`tuple concurrently updated` 与 30 个假失败。锁挂在会话上，进程被 kill 也不会残留。
+
 ## 常用命令
 
 | 命令 | 说明 |
