@@ -155,13 +155,19 @@ export async function getAnalyticsTop(db: Db, limit = 20) {
  *
  * 用 `generate_series` 补齐没有播放的日期，否则前端折线图会把空白日跳过、
  * 把 14 天画成 9 天。日期按 **Asia/Shanghai** 切分（同 byHour 的理由）。
+ *
+ * ⚠️ 「今天」必须用 `(now() AT TIME ZONE 'Asia/Shanghai')::date`，不能用 `CURRENT_DATE`。
+ * `CURRENT_DATE` 取的是**会话时区**（库容器是 UTC）的日期：北京时间 00:00–08:00 这段，
+ * UTC 还是前一天，`CURRENT_DATE` 就比上海日期少一天，导致区间整体前移、当天数据落在区间外
+ * （实测 04:17 时 span 末位是 11-13，而上海已是 11-14）。这个 bug 只在凌晨复现，
+ * 2026-11-14 由 admin-m2 的 trend 用例抓到。
  */
 export async function getAnalyticsTrend(db: Db, days = 14) {
   const rows = await db.$queryRaw<Array<{ day: string; plays: bigint; completes: bigint }>>`
     WITH span AS (
       SELECT generate_series(
-        (CURRENT_DATE AT TIME ZONE 'Asia/Shanghai') - (${days - 1} || ' days')::interval,
-        (CURRENT_DATE AT TIME ZONE 'Asia/Shanghai'),
+        (now() AT TIME ZONE 'Asia/Shanghai')::date - (${days - 1} || ' days')::interval,
+        (now() AT TIME ZONE 'Asia/Shanghai')::date,
         '1 day'::interval
       )::date AS day
     ),
@@ -170,7 +176,7 @@ export async function getAnalyticsTrend(db: Db, days = 14) {
              count(*) FILTER (WHERE event = 'start')    AS plays,
              count(*) FILTER (WHERE event = 'complete') AS completes
       FROM app.play_event
-      WHERE at >= ((CURRENT_DATE AT TIME ZONE 'Asia/Shanghai') - (${days - 1} || ' days')::interval)
+      WHERE at >= ((now() AT TIME ZONE 'Asia/Shanghai')::date - (${days - 1} || ' days')::interval)
       GROUP BY 1
     )
     SELECT to_char(s.day, 'YYYY-MM-DD') AS day,
