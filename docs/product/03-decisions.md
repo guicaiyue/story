@@ -35,13 +35,15 @@ story_category id PK · name NOT NULL · sort_id (默认 0)
 | # | 决策 | 内容 | 影响 |
 | --- | --- | --- | --- |
 | D1 | 数据库 | M1 **不做数据迁移、不做 legacyId**，Prisma 直读既有三表。~~共库直读~~ **开发期改为独立 dev 库，见 D7（D7 优先）**。 | 迁移文件是唯一交付物；开发库由 D7 提供 |
-| D2 | pREST | M1 **保留 pREST 只读通道**作为老站入口，**不做改动、不定弃用时间点**。 | 老站与新版并行；新服务端是事实源 |
+| D2 | pREST | ~~M1 保留 pREST 只读通道作为老站入口，不做改动、不定弃用时间点。~~ **已于 2026-11-14 由 D9 推翻。** | 老站与新版并行；新服务端是事实源 |
 | D3 | 老表扩列 | 新字段（`ageBand`/`tags`/`status`/`durationSec` 等）**直接 `ALTER TABLE` 追加在 `story_main`**，不建伴随表。**但只在 dev 库执行；生产库仅产出 migration 文件（D7）**。 | 需回填 `status='published'`；新列会被 pREST 一并暴露 |
 | D4 | M1 鉴权 | **固定验证码占位**：手机号 + 固定码走通 JWT 全链路，**不接真实短信**；仅预留短信发送 **adapter 接口**（M1 内为 no-op/日志实现），M3 前替换为真实服务商。 | `Account/Family/Child` 与 JWT 全链路可在 M1 完成 |
 | D5 | 文档 | 授权在 `docs/product/` 追加决策记录（即本文），00/01/02 保持只读；改 02 §3.1 已另行授权（已执行，不改产品结论）。 | — |
 | D6 | 游客升级 | **游客账号升级为手机号账号的规则 M1 暂不定稿**，待 M1 骨架跑通后再补。02 §5「游客账号可升级为手机号账号（保留数据）」在 M1 阶段**不作为验收项**。 | `Account.phone` 必须可空且唯一 |
 | D7 | **生产库只读** | **禁止对生产 `story` 库做任何写操作**（ALTER/INSERT/CREATE/DROP 皆不可）。开发期一律使用独立 dev 库；**所有迁移、种子、联调只打 dev 库**；生产库**只产出 migration 文件，不执行**。生产授权收紧（§4）**也只写成脚本，待批准后执行**。 | 见 §6 已发生的写入披露；`scripts/dev-db.sh` 提供 dev 库 |
 | D8 | 新表 schema | 用户/儿童/播放/运营新表全部建在**独立 schema `app`**，不向 pREST 角色授权；legacy 三表保持 `public` 不变。共库 ≠ 共 schema。 | 儿童个人信息不进 pREST 暴露面 |
+| D9 | **1.0 退役** | **2026-11-14 起 1.0 静态站整体下线**：`story` 与 `story-prest` 两个容器、`xirizhi/story` 镜像、`/vol1/1000/docker/story` 部署目录、Traefik 里 `story-https` 与 `story-prest-https` 两条路由全部清理。`story.xirizhi.cn` 与 `story-api.xirizhi.cn` 不再提供服务。**源码仍留在仓库**（`index.html` / `css` / `js` / `live2d` / `webfonts` / `img`），保留可查但不构建不发布。 | 推翻 D2。生产只剩 2.0 两个域名；`story` 库数据不受影响（1.0 与 2.0 共用同一库，2197 条故事完好） |
+
 
 ## 3. Dev 环境（D7 的落地形态）
 

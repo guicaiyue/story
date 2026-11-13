@@ -8,6 +8,7 @@ Type=oneshot
 User=root
 Environment=STORY_REPO=guicaiyue/story
 Environment=STORY_DIR=/vol1/1000/开发/NAS/story
+# 1.0 已退役：容器不存在就跳过 revision 核对（不是故障）。要恢复 1.0 就把这里改回 story
 Environment=STORY_CONTAINER=story
 Environment=HUB=http://127.0.0.1:3350
 Environment=STORY_STATE=/vol1/1000/docker/autoloop-story/.last-main

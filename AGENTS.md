@@ -5,7 +5,7 @@
 
 ## 一句话定位
 
-单库 monorepo，只装**生产 docker 部署的两套东西**：1.0 静态站（根目录）+ 2.0 服务端与运营后台（`apps/`）。
+单库 monorepo，生产只部署 **2.0 服务端与运营后台**（`apps/`）。1.0 静态站（根目录）**已于 2026-11-14 退役**，源码留存可查，不再构建发布。
 Flutter 客户端已移出仓库。
 
 ## 怎么跑
@@ -29,7 +29,7 @@ docker exec dsh-dev bash -lc 'cd /vol1/1000/开发/NAS/story && ./scripts/prefli
 
 | 层 | 栈 | 生产入口 |
 | --- | --- | --- |
-| 1.0 静态站 | 原生 HTML/CSS/JS + pREST 直连 Postgres | `story.xirizhi.cn` |
+| 1.0 静态站（**已退役**） | 原生 HTML/CSS/JS + pREST 直连 Postgres | 已下线，不再有生产入口 |
 | 服务端 | Node 22 + TS + Fastify 5 + Prisma 6 + zod | `api-story.xirizhi.cn` |
 | 运营后台 | React 18 + Vite + TS + Ant Design 5 | `admin-story.xirizhi.cn` |
 
@@ -47,8 +47,8 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
 
 1. **根 `.dockerignore` 必须是白名单**。根 `Dockerfile` 是 `COPY . /usr/share/nginx/html`，
    一旦放宽，`apps/`、`docs/` 源码会直接发布到公网 web 根目录。
-2. **`js/app.js` 是线上在用的主逻辑**。`js/appJs.js` 是未引用的并存实现（常量都不同），
-   改导航/列表前先确认文件。
+2. **`js/app.js` 曾是 1.0 线上主逻辑**（1.0 已退役，这套 JS 不再部署）。`js/appJs.js` 是未引用的
+   并存实现（常量都不同）；真要恢复 1.0 前，先确认改的是哪个文件。
 3. **镜像构建只能用 alpine 基础镜像 + 官方 `registry.npmjs.org`**。
    本机 registry 源不给 Debian tag；npmmirror 从构建容器不可达。详见 README「构建期的四个坑」。
 4. **生产库 `story` 只读**。写操作走 runbook 里标注「需批准」的步骤；开发一律用 `story-dev-postgres`。

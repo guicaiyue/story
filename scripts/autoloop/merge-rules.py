@@ -64,6 +64,10 @@ PROMPT_DRIFT = """# 任务：生产静态站落后 main，查清楚为什么
 `story-poll.sh` 在 NAS 上每 10 分钟对一次：GitHub `main` 的最新提交 vs 生产容器
 `story` 的镜像标签 `org.opencontainers.image.revision`。现在两者不一样，事件里写了两个 SHA。
 
+**注意：1.0 静态站（容器 `story`）已于 2026-11-14 退役。** 如果这条事件里提到的容器是 `story`，
+先确认它是不是又被谁拉起来了（`docker ps -a | grep story`）；现在生产只该有 `story-server-prod`
+与 `story-admin-prod` 两个容器。
+
 ## 这个仓库的发布链（先认清再动手）
 推 `main` → `.github/workflows/build-image.yml` 跑四个契约测试 → buildx 推
 `${DOCKERHUB_USERNAME}/story:<sha>` 与 `:latest` → curl n8n Watchtower webhook →
@@ -90,10 +94,11 @@ Watchtower 拉新镜像。**没有任何一步是 Agent 该替人做的**。
 
 PROMPT_OUTAGE = """# 任务：生产域名异常，只读排查
 
-`story-poll.sh` 每 10 分钟探三个域名，事件里写了哪个不正常、什么状态码：
+`story-poll.sh` 每 10 分钟探两个域名，事件里写了哪个不正常、什么状态码：
 - `https://api-story.xirizhi.cn/api/health`（2.0 服务端）
 - `https://admin-story.xirizhi.cn/`（2.0 运营后台）
-- `https://story.xirizhi.cn/`（1.0 静态站）
+
+（1.0 静态站已于 2026-11-14 退役，`story.xirizhi.cn` / `story-api.xirizhi.cn` 已下线，不再探。）
 
 ## 只读排查顺序
 1. 先自己复探一遍，确认不是探针抖动：`curl -sS -o /dev/null -w '%{http_code} %{time_total}\\n' --max-time 15 <URL>`。
@@ -151,10 +156,12 @@ PROMPT_TICK = """# 任务：小故事铺每日巡检（只读）
 3. `gh api repos/guicaiyue/story/commits/main --jq .sha` vs
    `docker inspect story --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'`
    —— 生产是不是 main。
-4. 三个域名各一次 `curl -s -o /dev/null -w '%{http_code}' --max-time 12 <URL>`。
+4. 两个域名各一次 `curl -s -o /dev/null -w '%{http_code}' --max-time 12 <URL>`
+   （`api-story.xirizhi.cn/api/health` 与 `admin-story.xirizhi.cn`）。1.0 已于 2026-11-14 退役，
+   `story.xirizhi.cn` 与 `story-api.xirizhi.cn` 现在返回 404 是**正常的**，不要当故障报。
 
 ## 判定
-- 全部与基线一致、容器 healthy、revision 一致、三域名 2xx/3xx → 回执一行「巡检正常：<关键数字>」。
+- 全部与基线一致、容器 healthy、两域名 2xx/3xx → 回执一行「巡检正常：<关键数字>」。
 - 有偏差 → 回执里写清哪一项、差多少、你判断是「正常波动」（比如 stories 多了几条，是内容在长）
   还是「异常」（容器 unhealthy、revision 不一致、域名非 2xx）。异常才用 `ask` 发卡片。
 - 迁移待执行数 > 0 → 单独说一句「有 N 个迁移待执行，需人批准」，不要自己跑。
@@ -174,7 +181,7 @@ PROMPT_RELEASE_VERIFY = """# 任务：发布后核对（推 main 之后那一段
 2. `ssh nas "docker inspect story --format '{{.Config.Image}} {{index .Config.Labels \\"org.opencontainers.image.revision\\"}} {{.Created}}'"` —— 线上跑的 revision 是不是那个 SHA。
 3. `ssh nas "cd /vol1/1000/开发/NAS/story && ./scripts/prod-deploy.sh smoke"` —— 生产全链路冒烟（不写库）。
    只在你确认 CI 已过、镜像已换之后跑；它读 `PROD_FIXED_SMS_CODE` 登录后台。
-4. 静态站内容抽查：`curl -s https://story.xirizhi.cn/ | head -c 400`，确认不是默认页/错误页。
+4. 后台内容抽查：`curl -s https://admin-story.xirizhi.cn/ | head -c 400`，确认不是默认页/错误页。
 
 ## 判定
 - 三段全对 → 回执一行「上线核对通过：<SHA 前 7 位> 已在线上，冒烟通过」。

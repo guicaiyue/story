@@ -4,9 +4,13 @@
 
 | 层 | 目录 | 形态 | 生产入口 |
 | --- | --- | --- | --- |
-| 1.0 静态站（老站，线上在用） | 根目录 `index.html` / `css` / `js` / `live2d` / `webfonts` / `img` | nginx:alpine 静态镜像 | <https://story.xirizhi.cn>（数据读 pREST `story-api.xirizhi.cn`） |
 | 2.0 服务端 | `apps/server` | Node 22 + TS + Fastify 5 + Prisma 6 | <https://api-story.xirizhi.cn> |
 | 2.0 运营后台 | `apps/admin` | React 18 + Vite + Ant Design 5，镜像内 nginx | <https://admin-story.xirizhi.cn> |
+| 1.0 静态站（**已于 2026-11-14 退役**） | 根目录 `index.html` / `css` / `js` / `live2d` / `webfonts` / `img` | nginx:alpine 静态镜像 + pREST | 已下线，`story.xirizhi.cn` / `story-api.xirizhi.cn` 不再提供服务 |
+
+> **1.0 已退役**（2026-11-14）：容器、镜像、部署目录、Traefik 路由都已清理，配置整体备份在 NAS
+> `/vol1/1000/story/backup/retire-1.0-20261114-000508/`。源码仍在仓库里（保留可查），但不再构建发布。
+> 这推翻了 `docs/product/03-decisions.md` 的 D2「保留 pREST 只读通道、不定弃用时间点」，新决定记在该文档。
 
 > Flutter 客户端（`apps/app`）已移出本仓库，不在任何分支上。0.1.2 源码归档在 NAS
 > `/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`（118 KB / 101 文件），
@@ -17,7 +21,9 @@
 **先读 [docs/README.md](docs/README.md)** —— 「做到哪了 / 该看哪份 / 三条命令」都在那里。
 只要读一页就够的是 [docs/handover.md](docs/handover.md)。
 
-## 1.0 静态站
+## 1.0 静态站（已退役，仅作源码留存）
+
+> 以下内容保留供查阅：这套代码不再部署、不再发布镜像。要看生产形态请看「2.0 服务端与运营后台」。
 
 ### 本地开发
 

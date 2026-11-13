@@ -7,8 +7,10 @@
 > `docker/nginx/story-prod.conf`（可选）。
 >
 > 红线：生产库只读（DDL 待批准）、不碰 Vercel/Cloudflare。
-> 注：2026-11-13 起 push `main` **就是**发布通道（CI 构建镜像 + Watchtower 自动更新静态站），
-> 当年「不 push main」的约束已随上线流程变更失效。
+> 注：2026-11-13 起 push `main` **曾是**发布通道（CI 构建 1.0 静态站镜像 + Watchtower 自动更新）。
+> **2026-11-14 起 1.0 已退役（决策 D9）**：`build-image.yml` 已删除，换成只跑四个契约测试的
+> `contract-tests.yml`，不再构建镜像、不再推 Docker Hub、不再触发 Watchtower。
+> push `main` 现在只跑测试，不发布任何东西；2.0 两个容器由本 runbook 的 `prod-deploy.sh` 手动上线。
 > **本 runbook 中标注「需批准」的步骤，执行前逐项确认。**
 
 ---
