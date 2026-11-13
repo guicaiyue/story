@@ -12,6 +12,15 @@ import json
 import sys
 
 STORY_SOURCE = "story"
+# 之前叫这些名字，改过名的规则要连旧名一起从 rules.json 里摘掉，不然线上会新旧各跑一份。
+LEGACY_NAMES = {
+    "生产落后 main（漂移）",
+    "生产域名异常",
+    "预检失败就修",
+    "每日巡检（只读）",
+    "发布后核对",
+    "开发库清理（手动）",
+}
 STORY_SOURCE_NAME = "小故事铺任务"
 
 # —— 规则正文都写在这里，改提示词只改这一处 ——
@@ -90,7 +99,7 @@ Watchtower 拉新镜像。**没有任何一步是 Agent 该替人做的**。
   确实需要人动手时，用 `ask` 发一张卡片，写清要跑的命令和为什么。
 
 ## 收尾
-回执第一行：「查清了：<一句话原因>」或「没查清：<卡在哪>」。后面贴每一条命令的原始输出。"""
+回执第一行：「小故事铺 生产没跟上 main：<一句话原因>」或「小故事铺 查不清：<卡在哪>」。后面贴每一条命令的原始输出。"""
 
 PROMPT_OUTAGE = """# 任务：生产域名异常，只读排查
 
@@ -114,7 +123,7 @@ PROMPT_OUTAGE = """# 任务：生产域名异常，只读排查
   这些是生产变更，必须人拍板 —— 包括「看起来无害的重启」。
 
 ## 收尾
-回执第一行：「定位到了：<哪一层坏了>」或「没定位到：<已排除什么>」。后面贴命令与输出。"""
+回执第一行：「小故事铺 域名异常：<哪一层坏了>」或「小故事铺 域名异常，还没定位到：<已排除什么>」。后面贴命令与输出。"""
 
 PROMPT_PREFLIGHT = """# 任务：预检有失败项，在本机复现并修掉
 
@@ -141,7 +150,7 @@ PROMPT_PREFLIGHT = """# 任务：预检有失败项，在本机复现并修掉
 - 开 `fix/preflight-<日期>` 分支提交，不推 `main`、不合 PR、不发版。
 
 ## 收尾
-回执第一行：「修好了：<失败项> 现在过了，四条契约 + preflight 全绿」或「没修成：<原因>」。
+回执第一行：「小故事铺 预检修好了：<失败项> 现在过了，四条契约 + preflight 全绿」或「小故事铺 预检没修成：<原因>」。
 后面写：根因、改了哪些文件、原始输出、分支名、还剩什么。"""
 
 PROMPT_TICK = """# 任务：小故事铺每日巡检（只读）
@@ -161,8 +170,8 @@ PROMPT_TICK = """# 任务：小故事铺每日巡检（只读）
    `story.xirizhi.cn` 与 `story-api.xirizhi.cn` 现在返回 404 是**正常的**，不要当故障报。
 
 ## 判定
-- 全部与基线一致、容器 healthy、两域名 2xx/3xx → 回执一行「巡检正常：<关键数字>」。
-- 有偏差 → 回执里写清哪一项、差多少、你判断是「正常波动」（比如 stories 多了几条，是内容在长）
+- 全部与基线一致、容器 healthy、两域名 2xx/3xx → 回执一行「小故事铺 巡检正常：<关键数字>」。
+- 有偏差 → 回执第一行写「小故事铺 巡检发现异常：<哪一项>」，后文写清哪一项、差多少、你判断是「正常波动」（比如 stories 多了几条，是内容在长）
   还是「异常」（容器 unhealthy、revision 不一致、域名非 2xx）。异常才用 `ask` 发卡片。
 - 迁移待执行数 > 0 → 单独说一句「有 N 个迁移待执行，需人批准」，不要自己跑。
 
@@ -171,22 +180,38 @@ PROMPT_TICK = """# 任务：小故事铺每日巡检（只读）
 
 PROMPT_RELEASE_VERIFY = """# 任务：发布后核对（推 main 之后那一段）
 
-有人刚把改动推到 `main`（或者你被 `story.release.verify` 事件叫醒）。这个仓库的规矩是
-**推 main 就是发布**：CI 跑四个契约测试 → 推镜像 → n8n Watchtower webhook → Watchtower 拉新镜像。
-你的活是把这条链的每一段核对一遍，别假设它通了。
+有人刚把改动推到 `main`（或者你被 `story.release.verify` 事件叫醒）。
+**推 main 不等于上线**（2026-11-14 起）：1.0 静态站已退役，CI 只剩 `contract-tests.yml` 四个契约测试，
+不构建镜像、不推 Docker Hub、不触发 Watchtower；2.0 服务端与后台是人在 NAS 上手动
+`./scripts/prod-deploy.sh build / migrate / up`。所以先看清这一轮**到底有没有上线动作**，再核对。
 
 ## 核对（每条都贴原始输出）
-1. `gh run list --repo guicaiyue/story --branch main --limit 3 --json headSha,status,conclusion,databaseId`
+1. 这轮改了什么：`gh api repos/guicaiyue/story/commits/<SHA> --jq '.commit.message' | head -1`。
+2. CI：`gh run list --repo guicaiyue/story --branch main --limit 3 --json headSha,status,conclusion,databaseId`
    —— 最新那个 SHA 的 CI 结论；失败就 `gh run view <id> --log-failed` 看关键行。
-2. `ssh nas "docker inspect story --format '{{.Config.Image}} {{index .Config.Labels \\"org.opencontainers.image.revision\\"}} {{.Created}}'"` —— 线上跑的 revision 是不是那个 SHA。
-3. `ssh nas "cd /vol1/1000/开发/NAS/story && ./scripts/prod-deploy.sh smoke"` —— 生产全链路冒烟（不写库）。
-   只在你确认 CI 已过、镜像已换之后跑；它读 `PROD_FIXED_SMS_CODE` 登录后台。
-4. 后台内容抽查：`curl -s https://admin-story.xirizhi.cn/ | head -c 400`，确认不是默认页/错误页。
+3. 2.0 两个容器：`ssh nas "docker ps -a --format '{{.Names}}\\t{{.Status}}' | grep -E 'story-(server|admin)-prod'"`
+   —— 在不在、healthy 没有、最近重启过没有。
+4. 两个域名各一次 `curl -s -o /dev/null -w '%{http_code}' --max-time 12 <URL>`
+   （`api-story.xirizhi.cn/api/health` 与 `admin-story.xirizhi.cn`），2xx/3xx 才算好。
+   1.0 的 `story.xirizhi.cn` / `story-api.xirizhi.cn` 返回 404 是正常的，不要当故障。
+5. 只有这一轮**确实做过上线**（有人 `build/migrate/up` 过，或你在核对某次上线）才跑
+   `ssh nas "cd /vol1/1000/开发/NAS/story && ./scripts/prod-deploy.sh smoke"`；只改了文档/脚本/测试就不跑。
 
-## 判定
-- 三段全对 → 回执一行「上线核对通过：<SHA 前 7 位> 已在线上，冒烟通过」。
-- revision 没跟上 → 回执写「等 Watchtower」，不要手工 pull/restart；超过 30 分钟还没跟上再 `ask`。
-- 冒烟失败 → 贴失败项，`ask` 一张卡片（含回滚命令：切回上一个镜像 tag 是人工动作，别自己做）。
+## 判定（第一行就是发给人的那一行）
+- 没有上线动作（只推了文档、脚本、测试，或只跑了 CI）→
+  `小故事铺 这次没上线东西：<这次提交干了什么，一句人话>，CI 四条契约测试<全过/没过>`。
+  例：`小故事铺 这次没上线东西：只改了自动化开发的说明，CI 四条契约测试全过`。
+- 真有上线，容器与域名都对（跑过冒烟的再带上）→
+  `小故事铺 上线：<这次上线改了什么，一句人话>（<SHA 前 7 位>），冒烟通过`。
+  例：`小故事铺 上线：自动化开发中台接好了，issue 和生产探针能自动派活（e3c2d81），冒烟通过`。
+- 上线没走完 → `小故事铺 上线没走完：<卡在哪一段>`；需要人动手就 `ask` 一张卡片
+  （换镜像、重启、回滚都是人工动作，别自己做），超过 30 分钟还没跟上也 `ask`。
+
+## 第一行是给人看的
+规则每轮都把第一行推给人，收的人不在这一轮对话里、也不看代码：要一眼看出**哪个项目**、
+**这次上线或改了什么**，没上线就说清「没上线」。不写「已通过」「核对完毕」这种看不出内容的话，
+不写状态码和文件路径，提交号只放括号里。这条不用自己再发通知卡片；确实还要多说一句（比如失败项明细），
+用 `notice` 把内容写进去，别写「以下是汇报」这种空话。
 
 ## 不许做
 不推 `main`、不打 tag、不手工换镜像、不重启生产容器。"""
@@ -223,7 +248,7 @@ STORY_RULES = [
         "tell": "needed",
     },
     {
-        "name": "生产落后 main（漂移）",
+        "name": "小故事铺：生产落后 main",
         "when": {"source": STORY_SOURCE, "types": ["story.drift", "story.probe.failed"]},
         "to": "dsh-nas",
         "cwd": "/vol1/1000/开发/NAS/story",
@@ -233,7 +258,7 @@ STORY_RULES = [
         "tell": "always",
     },
     {
-        "name": "生产域名异常",
+        "name": "小故事铺：域名异常",
         "when": {"source": STORY_SOURCE, "types": ["story.outage"]},
         "to": "dsh-nas",
         "cwd": "/vol1/1000/开发/NAS/story",
@@ -243,7 +268,7 @@ STORY_RULES = [
         "tell": "always",
     },
     {
-        "name": "预检失败就修",
+        "name": "小故事铺：预检失败就修",
         "when": {"source": STORY_SOURCE, "types": ["story.preflight.failed"]},
         "to": "dsh-full",
         "cwd": "/home/xirizhi/Projects/story",
@@ -253,7 +278,7 @@ STORY_RULES = [
         "tell": "always",
     },
     {
-        "name": "每日巡检（只读）",
+        "name": "小故事铺：每日巡检",
         "when": {"cron": "0 9 * * *"},
         "to": "dsh-nas",
         "cwd": "/vol1/1000/开发/NAS/story",
@@ -263,7 +288,7 @@ STORY_RULES = [
         "tell": "never",
     },
     {
-        "name": "发布后核对",
+        "name": "小故事铺：发布后核对",
         "when": {"source": STORY_SOURCE, "types": ["story.release.verify"]},
         "to": "dsh-nas",
         "cwd": "/vol1/1000/开发/NAS/story",
@@ -273,7 +298,7 @@ STORY_RULES = [
         "tell": "always",
     },
     {
-        "name": "开发库清理（手动）",
+        "name": "小故事铺：开发库清理",
         "when": {"source": STORY_SOURCE, "types": ["story.cleanup"]},
         "to": "dsh-nas",
         "cwd": "/vol1/1000/开发/NAS/story",
@@ -307,7 +332,7 @@ def main() -> int:
     }
 
     rules = doc.setdefault("rules", [])
-    names = {r["name"] for r in STORY_RULES}
+    names = {r["name"] for r in STORY_RULES} | LEGACY_NAMES
     rules[:] = [r for r in rules if r.get("name") not in names]
     rules.extend(STORY_RULES)
 
