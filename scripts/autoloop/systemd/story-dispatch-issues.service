@@ -1,0 +1,15 @@
+[Unit]
+Description=小故事铺：每 5 分钟把带「任务」标签的 issue 推成中台事件
+Documentation=https://github.com/guicaiyue/story/blob/main/scripts/autoloop/README.md
+# gh 的登录态在用户级，所以这是 user unit，不是系统 unit。
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Projects/story
+# gh 装在 /usr/bin，jq、curl 同理；PATH 显式写死，systemd 不继承 shell 的环境。
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=DISPATCH_REPO=guicaiyue/story
+# 密钥与中台地址在 dispatch-story.env（600），脚本自己会读。
+ExecStart=/usr/bin/bash %h/Projects/story/scripts/autoloop/dispatch-issues.sh
+# 连不上中台时不堆日志：一次失败就退出，5 分钟后 timer 再来。
+TimeoutStartSec=120

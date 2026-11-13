@@ -1,0 +1,17 @@
+[Unit]
+Description=小故事铺：核对 GitHub main / 生产镜像 revision / 三个域名，不一致才发事件给中台
+Documentation=https://github.com/guicaiyue/story/blob/main/scripts/autoloop/README.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=STORY_REPO=guicaiyue/story
+Environment=STORY_DIR=/vol1/1000/开发/NAS/story
+Environment=STORY_CONTAINER=story
+Environment=HUB=http://127.0.0.1:3350
+Environment=STORY_STATE=/vol1/1000/docker/autoloop-story/.last-main
+# source story 的密钥，600，不进 unit 字面量
+EnvironmentFile=/vol1/1000/docker/autoloop-story/probe.env
+ExecStart=/vol1/1000/docker/autoloop-story/poll-prod.sh
+TimeoutStartSec=180

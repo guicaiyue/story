@@ -1,0 +1,17 @@
+[Unit]
+Description=小故事铺：每 6 小时跑一次 preflight，有失败项才发事件
+Documentation=https://github.com/guicaiyue/story/blob/main/scripts/autoloop/README.md
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Environment=STORY_DIR_IN_CONTAINER=/workspace/story
+Environment=STORY_DEV_CONTAINER=dsh-dev
+Environment=HUB=http://127.0.0.1:3350
+EnvironmentFile=/vol1/1000/docker/autoloop-story/probe.env
+Environment=TARGET_DB=story_dev
+ExecStart=/vol1/1000/docker/autoloop-story/preflight-gate.sh
+# 容器里跑 136 + 63 个测试，给足时间；--e2e 会更久
+TimeoutStartSec=1800

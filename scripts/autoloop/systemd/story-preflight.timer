@@ -1,0 +1,12 @@
+[Unit]
+Description=每 6 小时跑一次小故事铺 preflight
+
+[Timer]
+OnBootSec=20min
+OnUnitActiveSec=6h
+AccuracySec=5min
+Persistent=false
+Unit=story-preflight.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=每 10 分钟探一次小故事铺的生产状态
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=10min
+AccuracySec=1min
+# 合盖醒来只补一次，不要一醒来连着补十次
+Persistent=false
+Unit=story-poll.service
+
+[Install]
+WantedBy=timers.target
