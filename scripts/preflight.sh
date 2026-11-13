@@ -5,7 +5,7 @@
 #   ./scripts/preflight.sh --e2e        # 再加端到端冒烟（会临时起一个容器，连副本库）
 #   TARGET_DB=story_m12_rehearsal ./scripts/preflight.sh
 #
-# 在开发容器里跑（需要 pnpm / flutter / node；--e2e 还需要 docker）。
+# 在开发容器里跑（需要 pnpm / node；--e2e 还需要 docker）。
 # 退出码 0 = 全通；1 = 有失败项（逐项打印原因，不中断后续检查）。
 set -uo pipefail
 
@@ -27,14 +27,14 @@ record() { # name status detail
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# 这个脚本必须在**开发容器**里跑：宿主上既没有 flutter，也解析不到 story-dev-postgres。
+# 这个脚本必须在**开发容器**里跑：宿主上没有 pnpm，也解析不到 story-dev-postgres。
 # 之前有人在宿主上跑，服务端测试报「Can't reach database server at story-dev-postgres:5432」，
 # 看起来像测试坏了，其实是跑错地方。这里先判定，早退并给出一条能直接用的命令。
 IN_CONTAINER=0
 [[ -f /.dockerenv ]] && IN_CONTAINER=1
 if [[ "$IN_CONTAINER" = "0" ]]; then
   printf '\033[33m⚠️  当前不在容器里（没有 /.dockerenv）。\033[0m\n'
-  printf '   本脚本需要 pnpm / flutter / 能解析 story-dev-postgres —— 宿主上都没有。\n'
+  printf '   本脚本需要 pnpm / 能解析 story-dev-postgres —— 宿主上都没有。\n'
   printf '   正确跑法：\n'
   printf "     docker exec dsh-dev bash -lc 'cd %s && ./scripts/preflight.sh%s'\n" \
     "$ROOT" "${1:-}"
@@ -82,22 +82,8 @@ else
   record "服务端/后台测试" "SKIP" "没有 pnpm"
 fi
 
-# ④ App 测试（flutter analyze + test）
-if have flutter; then
-  if (cd apps/app && flutter analyze >/tmp/preflight-analyze.log 2>&1); then
-    record "App 静态检查" "PASS" "No issues found"
-  else
-    record "App 静态检查" "FAIL" "见 /tmp/preflight-analyze.log"
-  fi
-  if (cd apps/app && flutter test >/tmp/preflight-app.log 2>&1); then
-    T="$(grep -oE '\+[0-9]+: All tests passed' /tmp/preflight-app.log | tail -1)"
-    record "App 测试" "PASS" "${T:-通过}"
-  else
-    record "App 测试" "FAIL" "见 /tmp/preflight-app.log 末尾"
-  fi
-else
-  record "App 检查" "SKIP" "没有 flutter"
-fi
+# ④ App 端已移出本仓库（APK 走 GitHub Releases 附件），此处不再检查 flutter。
+#    需要验 App 时在 apps/app 的历史提交（backup/pre-cleanup 分支）上跑。
 
 # ⑤ 端到端冒烟（可选）：临时容器连副本库，跑 App 与后台的真实旅程
 #

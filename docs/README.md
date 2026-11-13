@@ -11,24 +11,21 @@
 | **上线执行记录（2026-11-13 已上线）** | **[product/24-prod-deploy-20261113.md](product/24-prod-deploy-20261113.md)** |
 | **收尾全量验证（一次跑完的证据）** | [product/23-final-verification.md](product/23-final-verification.md) |
 | **交接一页（只要读这一页）** | [handover.md](handover.md) |
-| 把服务跑起来（本地联调） | 根目录 [README.md](../README.md) 的「M4 联调栈」一节 |
+| 把服务跑起来（生产） | 根目录 [README.md](../README.md) 的「2.0 服务端与运营后台」一节 |
 | 改完代码检查有没有坏 | `./scripts/preflight.sh`（详见下文「三条命令」） |
 | **决定要不要上生产（历史清单，已执行）** | [product/20-approval-sheet.md](product/20-approval-sheet.md) |
 | 上线 / 重新上线（生产） | `./scripts/prod-deploy.sh status\|backup\|build\|migrate\|grants\|admin\|up\|smoke`；手册见 [product/12-prod-deploy-runbook.md](product/12-prod-deploy-runbook.md) |
 | 发版 | [product/14-release-checklist-0.1.1.md](product/14-release-checklist-0.1.1.md) + `release-notes-0.1.2.md` |
-| 看设计稿 / 改设计稿 | [design/README.md](design/README.md) |
 | 查某个决定为什么这么定 | [product/03-decisions.md](product/03-decisions.md) |
 
 ## 三条命令
 
 | 命令 | 干什么 | 什么时候跑 |
 | --- | --- | --- |
-| `./scripts/preflight.sh` | 迁移账本 + 服务端/后台/App 三端测试 | 每次改完代码 |
+| `./scripts/preflight.sh` | 迁移账本 + 服务端/后台测试 | 每次改完代码 |
 | `./scripts/preflight.sh --e2e` | 再加端到端冒烟（临时容器 + 副本库，16 步） | 准备上线前 |
-| `./scripts/design-shots.sh` | 把三份 HTML 原型渲成 PNG（手机 9 + 平板 1 + 后台 7） | 改完设计稿 |
 | `./scripts/prod-deploy.sh status` | 生产库 / 容器 / 域名一眼看完（只读） | 任何时候 |
 | `./scripts/prod-deploy.sh smoke` | 生产全链路冒烟（`--write` 才写库，自动清理） | 上线后 / 重启后 |
-| `apps/app/tool/build-release-apk.sh` | 出 release APK：查签名 → 查版号 → 测试 → 构建 → 自检 → 归档 sha256 | 每次发版 |
 
 端到端冒烟本体是 `apps/server/scripts/e2e-smoke.mjs`，也可以单独对着任意服务跑：
 `BASE=http://host:3000 ADMIN_CODE=123456 node apps/server/scripts/e2e-smoke.mjs`。
@@ -63,12 +60,7 @@
 | [product/14-release-checklist-0.1.1.md](product/14-release-checklist-0.1.1.md) | 0.1.1 逐项校验（APK 拆包核验、源码一致性） |
 | [product/release-notes-0.1.1.md](product/release-notes-0.1.1.md) | 0.1.1 release notes |
 | [product/release-notes-0.1.2.md](product/release-notes-0.1.2.md) | 0.1.2 发版说明（平板适配，**已出包**：versionCode 3 / 正式签名） |
-| [product/16-commit-plan.md](product/16-commit-plan.md) | `apps/` 那批未提交工作的提交方案 |
-
-## 设计与原型
-
-见 [design/README.md](design/README.md)：三份 HTML 原型（手机 9 屏 / 平板 2 屏 / 后台 7 视图）、
-出图脚本、复核清单，以及「只读代码看不出来」的那几类缺陷。
+| [product/16-commit-plan.md](product/16-commit-plan.md) | `apps/` 那批工作的提交方案（**已于 2026-11-13 执行**，见 `feat/platform-v2`） |
 
 ## 近期的三份复核记录
 
@@ -81,14 +73,15 @@
 ## 目录约定
 
 ```
-apps/server   服务端（Fastify + Prisma，136 测试）
-apps/admin    运营后台（React + Vite + nginx，63 测试）
-apps/app      Flutter 客户端（87 测试，含平板 9 条）
+apps/server           服务端（Fastify + Prisma，136 测试）
+apps/admin            运营后台（React + Vite + nginx，63 测试）
 apps/server/scripts   迁移执行器、开发种子、端到端冒烟
-scripts/      宿主侧脚本（预检、出图、旧栈冒烟/演练）
-docs/product  产品、决策、上线、发布
-docs/design   原型与出图
+scripts/              宿主侧脚本（preflight 预检、prod-deploy 上线一条龙）
+docs/product          产品、决策、上线、发布
 ```
+
+> Flutter 客户端已移出本仓库：源码在 `backup/pre-cleanup` 分支，APK 走 GitHub Releases，
+> 构建产物归档在 NAS `/vol1/1000/story/backup/apk/`。
 
 ## 一条硬规矩
 
