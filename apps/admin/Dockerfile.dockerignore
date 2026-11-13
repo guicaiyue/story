@@ -1,0 +1,13 @@
+# 构建上下文 = 仓库根目录；只放行构建后台镜像必需的文件。
+**
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!apps
+!apps/admin
+!apps/admin/package.json
+!apps/admin/index.html
+!apps/admin/tsconfig.json
+!apps/admin/vite.config.ts
+!apps/admin/src
+!apps/admin/public
+!apps/admin/nginx.conf
