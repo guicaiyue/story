@@ -1,0 +1,53 @@
+name: CI
+
+# 1.0 静态站已于 2026-11-14 彻底删除（决策 D9 的最终形态），四个契约测试
+# （umami 埋点 / pREST 参数编码 / analytics 队列 / EdgeTTS 生命周期）测的都是
+# 1.0 的 js/ 与 index.html，随之一起删除。
+#
+# 现在 CI 只做 2.0 的静态检查：类型检查 + 后台单元测试。
+# 服务端测试需要 Postgres，CI 里没有库，所以不在这里跑 —— 它在 NAS 的
+# preflight（story-preflight.timer 每 6 小时）里跑，那才是真正的门禁。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --registry https://registry.npmjs.org
+
+      - name: Typecheck server
+        run: pnpm --filter @story/server typecheck
+
+      - name: Typecheck admin
+        run: pnpm --filter @story/admin typecheck
+
+      - name: Admin unit tests
+        run: pnpm --filter @story/admin test

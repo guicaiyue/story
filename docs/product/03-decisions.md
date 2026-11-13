@@ -42,7 +42,7 @@ story_category id PK · name NOT NULL · sort_id (默认 0)
 | D6 | 游客升级 | **游客账号升级为手机号账号的规则 M1 暂不定稿**，待 M1 骨架跑通后再补。02 §5「游客账号可升级为手机号账号（保留数据）」在 M1 阶段**不作为验收项**。 | `Account.phone` 必须可空且唯一 |
 | D7 | **生产库只读** | **禁止对生产 `story` 库做任何写操作**（ALTER/INSERT/CREATE/DROP 皆不可）。开发期一律使用独立 dev 库；**所有迁移、种子、联调只打 dev 库**；生产库**只产出 migration 文件，不执行**。生产授权收紧（§4）**也只写成脚本，待批准后执行**。 | 见 §6 已发生的写入披露；`scripts/dev-db.sh` 提供 dev 库 |
 | D8 | 新表 schema | 用户/儿童/播放/运营新表全部建在**独立 schema `app`**，不向 pREST 角色授权；legacy 三表保持 `public` 不变。共库 ≠ 共 schema。 | 儿童个人信息不进 pREST 暴露面 |
-| D9 | **1.0 退役** | **2026-11-14 起 1.0 静态站整体下线**：`story` 与 `story-prest` 两个容器、`xirizhi/story` 镜像、`/vol1/1000/docker/story` 部署目录、Traefik 里 `story-https` 与 `story-prest-https` 两条路由全部清理。`story.xirizhi.cn` 与 `story-api.xirizhi.cn` 不再提供服务。**源码仍留在仓库**（`index.html` / `css` / `js` / `live2d` / `webfonts` / `img`），保留可查但不构建不发布。 | 推翻 D2。生产只剩 2.0 两个域名；`story` 库数据不受影响（1.0 与 2.0 共用同一库，2197 条故事完好） |
+| D9 | **1.0 彻底删除** | **2026-11-14**：1.0 静态站分两步清干净。**第一步下线**——`story` 与 `story-prest` 容器、`xirizhi/story` 镜像、`/vol1/1000/docker/story` 部署目录、Traefik 两条路由（`story-https` / `story-prest-https`），`story.xirizhi.cn` 与 `story-api.xirizhi.cn` 不再提供服务。**第二步删源码**（同日）——仓库里 `index.html` / `css` / `js` / `live2d` / `webfonts` / `img` / `BingSiteAuth.xml` / `tencent*.txt`，以及只为它存在的根 `Dockerfile`、根 `.dockerignore`、`docker/nginx.conf`、`scripts/dev-server.js`、四个契约测试（`test-umami-tracker.js` 等）全部移除；CI 从「跑四个契约测试」换成「2.0 类型检查 + 后台单测」。 | 推翻 D2。仓库从「1.0+2.0 双栈」变成纯 2.0。生产库零影响（共用同一 `story` 库，2197 条故事完好）。**归档**：NAS `/vol1/1000/story/backup/retire-1.0-20261114-000508/story-1.0-source-20261114-041342.tar.gz`（2.8 MB / 57 条目，sha256 `a4a72c60…5784`），且仍在 git 历史里（取删除提交的父提交 `499f138` 即可） |
 
 
 ## 3. Dev 环境（D7 的落地形态）

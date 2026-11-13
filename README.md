@@ -1,16 +1,19 @@
 # 小故事铺
 
-面向儿童与家庭的在线故事阅读平台。仓库现在只装**生产 docker 部署的两套东西**：
+面向儿童与家庭的在线故事阅读平台。
 
 | 层 | 目录 | 形态 | 生产入口 |
 | --- | --- | --- | --- |
-| 2.0 服务端 | `apps/server` | Node 22 + TS + Fastify 5 + Prisma 6 | <https://api-story.xirizhi.cn> |
-| 2.0 运营后台 | `apps/admin` | React 18 + Vite + Ant Design 5，镜像内 nginx | <https://admin-story.xirizhi.cn> |
-| 1.0 静态站（**已于 2026-11-14 退役**） | 根目录 `index.html` / `css` / `js` / `live2d` / `webfonts` / `img` | nginx:alpine 静态镜像 + pREST | 已下线，`story.xirizhi.cn` / `story-api.xirizhi.cn` 不再提供服务 |
+| 服务端 | `apps/server` | Node 22 + TS + Fastify 5 + Prisma 6 | <https://api-story.xirizhi.cn> |
+| 运营后台 | `apps/admin` | React 18 + Vite + Ant Design 5，镜像内 nginx | <https://admin-story.xirizhi.cn> |
 
-> **1.0 已退役**（2026-11-14）：容器、镜像、部署目录、Traefik 路由都已清理，配置整体备份在 NAS
-> `/vol1/1000/story/backup/retire-1.0-20261114-000508/`。源码仍在仓库里（保留可查），但不再构建发布。
-> 这推翻了 `docs/product/03-decisions.md` 的 D2「保留 pREST 只读通道、不定弃用时间点」，新决定记在该文档。
+> **1.0 静态站已于 2026-11-14 彻底删除**（决策 D9）：容器、镜像、部署目录、Traefik 路由、
+> 以及仓库里的源码（`index.html` / `css` / `js` / `live2d` / `webfonts` / `img`）、
+> 它专属的 `Dockerfile` / `.dockerignore` / `docker/nginx.conf` / `scripts/dev-server.js` /
+> 四个契约测试，全部移除。整份归档在 NAS
+> `/vol1/1000/story/backup/retire-1.0-20261114-000508/story-1.0-source-20261114-041342.tar.gz`
+> （2.8 MB / 57 条目，sha256 `a4a72c60…5784`），另仍在 git 历史里（删除提交的父提交可取出）。
+> 要恢复请看 [docs/product/03-decisions.md](docs/product/03-decisions.md) 的 D9。
 
 > Flutter 客户端（`apps/app`）已移出本仓库，不在任何分支上。0.1.2 源码归档在 NAS
 > `/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`（118 KB / 101 文件），
@@ -21,46 +24,7 @@
 **先读 [docs/README.md](docs/README.md)** —— 「做到哪了 / 该看哪份 / 三条命令」都在那里。
 只要读一页就够的是 [docs/handover.md](docs/handover.md)。
 
-## 1.0 静态站（已退役，仅作源码留存）
-
-> 以下内容保留供查阅：这套代码不再部署、不再发布镜像。要看生产形态请看「2.0 服务端与运营后台」。
-
-### 本地开发
-
-不需要 Docker，Node.js 18+：
-
-```bash
-node scripts/dev-server.js
-```
-
-浏览器访问 <http://127.0.0.1:5173>，改文件自动刷新。可覆盖监听地址：
-
-```bash
-HOST=0.0.0.0 PORT=5173 node scripts/dev-server.js
-```
-
-### 测试
-
-```bash
-node test-umami-tracker.js
-node test-prest-client.js
-node test-story-analytics.js
-node test-edge-tts-analytics.js
-```
-
-四个契约测试锁死外部契约（umami 埋点标签、pREST 参数编码、analytics 队列、EdgeTTS 生命周期）。
-改 `index.html` 的埋点标签或 `js/prest-client.js` 的参数名会直接打红。
-
-### 发布
-
-唯一入口是推 `main`。[build-image.yml](.github/workflows/build-image.yml) 跑四个测试 → buildx 推镜像 → 触发 n8n Watchtower webhook。
-
-- `${DOCKERHUB_USERNAME}/story:<commit-sha>`
-- `${DOCKERHUB_USERNAME}/story:latest`
-
-需要的 Secrets：`DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN`、`N8N_WATCHTOWER_WEBHOOK_URL`。
-
-## 2.0 服务端与运营后台
+## 服务端与运营后台
 
 ### 一键上线（生产）
 

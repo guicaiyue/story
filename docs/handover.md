@@ -8,9 +8,10 @@
 ## 一句话现状
 
 2.0 服务端/运营后台在生产跑着（`api-story.xirizhi.cn` / `admin-story.xirizhi.cn`，HTTPS healthy，
-证书到 **2027-02-09**）。**1.0 静态站已于 2026-11-14 退役**：`story.xirizhi.cn` 与
-`story-api.xirizhi.cn` 已下线（容器、镜像、部署目录、Traefik 路由都清理了），
-配置整体备份在 NAS `/vol1/1000/story/backup/retire-1.0-20261114-000508/`。
+证书到 **2027-02-09**）。**1.0 静态站已于 2026-11-14 彻底删除**（决策 D9）：容器、镜像、
+部署目录、Traefik 路由都已清理，**仓库里的源码、根 Dockerfile、.dockerignore 和四个契约测试也删了**，
+`story.xirizhi.cn` / `story-api.xirizhi.cn` 已下线。整份归档在 NAS
+`/vol1/1000/story/backup/retire-1.0-20261114-000508/`，另仍在 git 历史里。
 仓库已收敛到**唯一版本 0.1.2**、**唯一分支 `main`**、**唯一 tag `v0.1.2`**。
 Flutter 客户端已移出仓库（源码归档在 NAS）。
 
