@@ -125,8 +125,9 @@ try {
 let code = 1;
 try {
   // 与原来的 `tsx tests/setup-test-db.ts && vitest run` 等价，只是中间不再允许别人插进来。
+  // `--setup-only` 只重建库（对应原来的 test:setup），同样要拿锁：重建库正是会互相打架的那一步。
   code = await run('tsx', ['tests/setup-test-db.ts']);
-  if (code === 0) code = await run('vitest', ['run']);
+  if (code === 0 && !process.argv.includes('--setup-only')) code = await run('vitest', ['run']);
 } finally {
   finished = true;
   await release();

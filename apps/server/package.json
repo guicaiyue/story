@@ -13,7 +13,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node scripts/run-tests.mjs",
-    "test:setup": "tsx tests/setup-test-db.ts",
+    "test:setup": "node scripts/run-tests.mjs --setup-only",
     "db:migrate": "node scripts/migrate.mjs",
     "db:studio": "prisma studio"
   },
