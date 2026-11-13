@@ -51,7 +51,7 @@
 | [product/13-prod-story-app-grants.sql](product/13-prod-story-app-grants.sql) | `story_app` 专用账号授权 SQL（**已执行**） |
 | [product/21-prod-admin-seed.sql](product/21-prod-admin-seed.sql) | 建首个生产管理员账号（幂等，**已于 11-13 执行**） |
 | [product/15-prod-credential-rotation.md](product/15-prod-credential-rotation.md) | 生产口令暴露面核查与轮换清单 |
-| [product/11-dev-cleanup.md](product/11-dev-cleanup.md) | 开发库残留清理 |
+| [product/11-dev-cleanup.md](product/11-dev-cleanup.md) | 开发库残留清理（**已于 2026-11-13 执行**：5 个演练库已删） |
 
 ## 发布
 

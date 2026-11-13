@@ -53,7 +53,8 @@ App 源码归档：`/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`。
 ## 两处没做到的
 
 1. **OpenDesign 出设计稿**：当时会话没有它的工具入口，改用「手写 HTML 原型 + 无头浏览器逐屏截图复核」。
-   设计原型与截图已随 `docs/design/` 移出仓库，要重做视觉定稿得先找回那批原型（不在 git 历史里）。
+   设计原型与截图已移出工作树，但**历史里还在**：`git archive c87b39f docs/design` 可取回 66 个文件，
+   或解压 NAS `/vol1/1000/story/backup/src/design-assets.tar.gz`。
 2. **用卡片指挥一个全新开发会话**：插件的执行层只把答复投回**提问的那个会话**
    （插件仓 `src/host/execution/session.ts`），没有「从卡片派生新会话」的能力。
    要补：加一个 `spawn` 适配器。这不是文案问题，是缺一块能力。

@@ -15,7 +15,7 @@
 | 开发容器 | `/vol1/1000/docker/dsh-dev` → `http://192.168.1.4:3080` | dsh + 任务卡插件；访问用 `./dev-url.sh` |
 | 开发库 | `story-dev-postgres`（`story_dev` / `story_test`） | 从生产 dump 恢复的 2197 条内容；**开发只打这里** |
 | 生产库 | `postgres`（`story`） | 服务 storynook.cn，**只读**，迁移只产出文件不执行 |
-| 设计工具 | OpenDesign（`story-admin-web` / `story-android-app` 两个项目） | 产物原在 `docs/design/`，2026-11-13 已随仓库收敛移出，不在 git 历史里 |
+| 设计工具 | OpenDesign（`story-admin-web` / `story-android-app` 两个项目） | 产物原在 `docs/design/`，2026-11-13 移出工作树；**历史里仍在**（`c87b39f`），并归档到 NAS `backup/src/design-assets.tar.gz` |
 | 本地预览（静态站） | `node scripts/dev-server.js` → `http://127.0.0.1:5173` | 零依赖，改文件自动刷新 |
 
 ## 2. 角色
@@ -106,7 +106,7 @@
 | `04-dev-log.md` | 开发日志、首轮交付结果 |
 | `05-task-card-review.md` | 任务卡系统真实问题与修复 |
 | `06-working-baseline.md` | 本文：长期开发怎么干 |
-| `docs/design/` | **已移出仓库**（2026-11-13），原型与截图不在 git 历史里 |
+| `docs/design/` | **已移出工作树**（2026-11-13）。要取回：`git archive c87b39f docs/design` 或解压 NAS `backup/src/design-assets.tar.gz` |
 
 ## 9. 工具链（2026-11-09 补）
 

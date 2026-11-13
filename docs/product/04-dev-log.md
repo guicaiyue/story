@@ -4,7 +4,7 @@
 > 内容原样保留（这是踩坑档案的价值所在）。
 > 其中提到的路径现在已不存在，读的时候自行折算：
 > - `apps/app/**`（Flutter）→ 已移出仓库，源码归档 NAS `backup/src/story-app-0.1.2-src.tar.gz`
-> - `docs/design/**`（设计原型与截图）→ 已移出仓库，不在 git 历史里
+> - `docs/design/**`（设计原型与截图，66 文件）→ 已移出仓库但**仍在 git 历史里**（`git archive c87b39f docs/design` 可取），另有归档 `backup/src/design-assets.tar.gz`
 > - `docker-compose.m4.yml`、`scripts/m4-*.sh`、`scripts/design-shots.*`、`scripts/dev-metrics.mjs` → 已删除
 > - 分支 `feat/platform-v2` → 已合并进 `main` 并删除
 >
