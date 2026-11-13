@@ -1,1 +1,26 @@
 *.log
+node_modules/
+dist/
+.env
+.env.local
+# 生产环境变量（含真实密钥与生产库连接串）——绝不进仓库
+.env.prod
+.env.prod.*
+!.env.prod.example
+.DS_Store
+
+# Production content dump for local dev (large; rebuild with scripts/dev-db.sh dump)
+.dev-data/
+# 服务端 TTS 合成缓存（MP3 落盘，不进仓库）
+.audio-cache/
+
+# Flutter/Dart 构建产物与验证截图
+build/
+.dart_tool/
+.shots/
+
+# M4 迁移演练快照（pg_dump 产物，可重建；见 scripts/m4-migrate-rehearsal.sh）
+.m4-rehearsal/
+# 发布产物：APK/AAB 体积大，走 GitHub Releases 附件而不是仓库
+releases/*.apk
+releases/*.aab
