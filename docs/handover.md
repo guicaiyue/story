@@ -13,7 +13,8 @@
 `story.xirizhi.cn` / `story-api.xirizhi.cn` 已下线。整份归档在 NAS
 `/vol1/1000/story/backup/retire-1.0-20261114-000508/`，另仍在 git 历史里。
 仓库已收敛到**唯一版本 0.1.2**、**唯一分支 `main`**、**唯一 tag `v0.1.2`**。
-Flutter 客户端已移出仓库（源码归档在 NAS）。
+**三端源码都在仓库**（`apps/server`、`apps/admin`、`apps/app`）：Flutter 客户端已于 2026-11-14 从
+git 历史 `aacce1b` 恢复到 `apps/app`（0.1.2+3 / 63 文件）；签名材料与 APK 不入库（NAS `backup/keystore/`）。
 
 ## 三分钟上手
 

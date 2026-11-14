@@ -23,7 +23,7 @@
 
 | 命令 | 干什么 | 什么时候跑 |
 | --- | --- | --- |
-| `./scripts/preflight.sh` | 迁移账本 + 服务端/后台测试 | 每次改完代码 |
+| `./scripts/preflight.sh` | 迁移账本 + 服务端/后台测试（`FLUTTER_CHECK=1` 再加 App 58 用例） | 每次改完代码 |
 | `./scripts/preflight.sh --e2e` | 再加端到端冒烟（临时容器 + 副本库，16 步） | 准备上线前 |
 | `./scripts/prod-deploy.sh status` | 生产库 / 容器 / 域名一眼看完（只读） | 任何时候 |
 | `./scripts/prod-deploy.sh smoke` | 生产全链路冒烟（`--write` 才写库，自动清理） | 上线后 / 重启后 |
@@ -74,13 +74,15 @@
 ```
 apps/server           服务端（Fastify + Prisma，136 测试）
 apps/admin            运营后台（React + Vite + nginx，63 测试）
+apps/app              Flutter 客户端（58 测试，2026-11-14 从 `aacce1b` 恢复）
 apps/server/scripts   迁移执行器、开发种子、端到端冒烟
 scripts/              宿主侧脚本（preflight 预检、prod-deploy 上线一条龙）
 docs/product          产品、决策、上线、发布
 ```
 
-> Flutter 客户端已移出本仓库，不在任何分支上：0.1.2 源码归档在 NAS
-> `/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`，APK 走 GitHub Releases。
+> **Flutter 客户端已在仓库内**（`apps/app`，2026-11-14 恢复）。签名材料与 APK 不入库，
+> 见 [apps/app/README.md](../apps/app/README.md)。装好 Flutter SDK 后，
+> `FLUTTER_CHECK=1 ./scripts/preflight.sh` 会把 58 个用例并进预检。
 
 ## 一条硬规矩
 

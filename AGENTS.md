@@ -5,8 +5,9 @@
 
 ## 一句话定位
 
-单库 monorepo，只有 **服务端与运营后台**（`apps/`）。1.0 静态站**已于 2026-11-14 彻底删除**（决策 D9），
-源码、根 Dockerfile、.dockerignore、四个契约测试全没了。Flutter 客户端早已移出仓库。
+单库 monorepo，**三端都在 `apps/`**：服务端、运营后台、安卓客户端。1.0 静态站**已于 2026-11-14 彻底删除**
+（决策 D9），源码、根 Dockerfile、.dockerignore、四个契约测试全没了；**Flutter 客户端源码已于 2026-11-14
+从 git 历史（`aacce1b`）恢复到 `apps/app`**，版本 0.1.2+3，63 个文件。
 
 ## 怎么跑
 
@@ -16,6 +17,11 @@ docker exec dsh-dev bash -lc 'cd /workspace/story && ./scripts/preflight.sh'
 
 # 生产状态（只读）
 ./scripts/prod-deploy.sh status
+
+# 安卓客户端（需要 Flutter SDK + Android SDK；开发容器里没有，装好后可用）
+cd apps/app && flutter pub get && flutter test        # 58 个用例
+FLUTTER_CHECK=1 ./scripts/preflight.sh                 # 把 App 用例并进预检（默认关）
+./apps/app/tool/build-release-apk.sh                   # 出正式签名包（见 apps/app/README.md）
 ```
 
 ## 技术栈
@@ -24,12 +30,15 @@ docker exec dsh-dev bash -lc 'cd /workspace/story && ./scripts/preflight.sh'
 | --- | --- | --- |
 | 服务端 | Node 22 + TS + Fastify 5 + Prisma 6 + zod | `api-story.xirizhi.cn` |
 | 运营后台 | React 18 + Vite + TS + Ant Design 5 | `admin-story.xirizhi.cn` |
+| 安卓客户端 | Flutter 3.47.9 / Dart 3.13.7，包名 `com.storynook.app`，provider + just_audio | APK 走 GitHub Releases 附件 |
 
 ## 目录与约定
 
 ```
 apps/server      服务端（136 测试）
 apps/admin       运营后台（63 测试，镜像内 nginx）
+apps/app         Flutter 客户端（58 测试；签名材料与 APK 不入库）
+apps/app/tool/build-release-apk.sh  正式签名出包（自检版号/签名/基址）
 apps/server/scripts  迁移执行器、开发种子、端到端冒烟
 scripts/         宿主侧脚本（preflight 预检、prod-deploy 上线一条龙）
 docs/product     产品、决策、上线、发布（档案性质，读前看状态头）
@@ -55,6 +64,8 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
 - 唯一分支 `main`，唯一版本 **0.1.2**，唯一 tag `v0.1.2`，唯一 GitHub Release。
 - 生产在跑：**服务端 / 后台两个**域名 200，容器 `story-server-prod` / `story-admin-prod` healthy，
   TLS 到 2027-02-09。1.0 已彻底删除（D9），`story.xirizhi.cn` 返回 404 是正常的。
+- **三端源码都在仓库**：`apps/server`、`apps/admin`、`apps/app`（Flutter，2026-11-14 恢复）。
+  签名材料（`android/key.properties` + `android/app/keystore/`）**不入库**，在 NAS `backup/keystore/`。
 - 待办：管理员手机号换真号、APK 真机验收、接真实短信通道。
 - 已知遗留：`story-dev-postgres` 上只剩 `story_dev` / `story_test` / `story_e2e_seed` 三个库，演练库已清完
   （`story_e2e_seed` 是 `preflight --e2e` 的种子库，**别删**）。

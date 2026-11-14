@@ -82,8 +82,21 @@ else
   record "服务端/后台测试" "SKIP" "没有 pnpm"
 fi
 
-# ④ App 端已移出本仓库（APK 走 GitHub Releases 附件），此处不再检查 flutter。
-#    需要验 App 时在 apps/app 的历史提交（backup/pre-cleanup 分支）上跑。
+# ④ 安卓客户端（Flutter）。源码已在 apps/app（2026-11-14 从 git 历史 aacce1b 恢复）。
+#    默认不检查：容器里通常没有 Flutter SDK，装了之后用 FLUTTER_CHECK=1 把它并进预检。
+#    注意 —— 装好 SDK 后请先跑 `flutter pub get`，否则 flutter test 会因缺依赖失败。
+if [ "${FLUTTER_CHECK:-0}" = "1" ]; then
+  if have flutter; then
+    if (cd apps/app && flutter test >/tmp/preflight-app.log 2>&1); then
+      T="$(grep -oE '[0-9]+ (tests passed|passed)' /tmp/preflight-app.log | tail -1)"
+      record "App 客户端测试" "PASS" "${T:-通过}"
+    else
+      record "App 客户端测试" "FAIL" "见 /tmp/preflight-app.log 末尾"
+    fi
+  else
+    record "App 客户端测试" "SKIP" "没有 flutter SDK：先装 Flutter，再 FLUTTER_CHECK=1 重跑"
+  fi
+fi
 
 # ⑤ 端到端冒烟（可选）：临时容器连副本库，跑 App 与后台的真实旅程
 #

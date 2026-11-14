@@ -15,9 +15,9 @@
 > （2.8 MB / 57 条目，sha256 `a4a72c60…5784`），另仍在 git 历史里（删除提交的父提交可取出）。
 > 要恢复请看 [docs/product/03-decisions.md](docs/product/03-decisions.md) 的 D9。
 
-> Flutter 客户端（`apps/app`）已移出本仓库，不在任何分支上。0.1.2 源码归档在 NAS
-> `/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`（118 KB / 101 文件），
-> 签名材料在 `backup/keystore/`，APK 走 GitHub Releases 附件（`backup/apk/` 留有副本）。
+> **安卓客户端（`apps/app`）已于 2026-11-14 恢复到仓库**（Flutter 3.47.9 / Dart 3.13.7，0.1.2+3，63 个文件），
+> 从 git 历史 `aacce1b` 取回。签名材料（`android/key.properties` + keystore）**不入库**，在 NAS
+> `backup/keystore/`；APK 走 GitHub Releases 附件。怎么跑、怎么出包见 [apps/app/README.md](apps/app/README.md)。
 
 ## 文档索引
 

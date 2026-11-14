@@ -1,0 +1,32 @@
+name: story_app
+description: "小故事铺 · 给中国家庭的睡前 20 分钟"
+publish_to: 'none'
+version: 0.1.2+3
+
+environment:
+  sdk: ^3.13.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 最小状态管理方案（任务要求：不要引入重型框架）。
+  provider: ^6.1.2
+
+  # 网络请求。
+  http: ^1.2.2
+
+  # 音频。仅在真实设备上生效；PlayerService 抽象让 App 与测试都不依赖它
+  # （见 lib/services/player_service.dart 的注释）。
+  just_audio: ^0.9.42
+
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

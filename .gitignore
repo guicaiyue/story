@@ -17,7 +17,7 @@ dist/
 # 通用构建产物（服务端/后台）
 build/
 
-# Flutter 已移出仓库；保留这条以防将来把源码放回来时误提交 468M 的 .dart_tool
+# Flutter 客户端在 apps/app：.dart_tool/ 与 build/ 都是可再生产物，绝不入库
 .dart_tool/
 
 # 发布产物：APK/AAB 体积大，走 GitHub Releases 附件而不是仓库
