@@ -71,10 +71,10 @@ jobs:
           set -euo pipefail
           [ -n "$HUB" ] || { echo "没有配 AUTOLOOP_HOOK_URL"; exit 1; }
           [ -n "$KEY" ] || { echo "没有配 AUTOLOOP_SOURCE_KEY"; exit 1; }
-          id="deploy.requested:${GITHUB_REPOSITORY}:${SHA}"
+          id="story.deploy:${GITHUB_REPOSITORY}:${SHA}"
           detail=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg ref "$REF" --arg sha "$SHA" --arg msg "$MSG" \
             '{repo:$repo, ref:$ref, sha:$sha, message:$msg, paths:[]}')
-          payload=$(jq -cn --arg id "$id" --arg type "deploy.requested" --arg subject "$GITHUB_REPOSITORY" \
+          payload=$(jq -cn --arg id "$id" --arg type "story.deploy" --arg subject "$GITHUB_REPOSITORY" \
             --arg summary "${GITHUB_REPOSITORY} ${SHA:0:12}" --arg detail "$detail" \
             --arg link "https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}" \
             '{id:$id, type:$type, subject:$subject, summary:$summary, detail:$detail, link:$link}')
