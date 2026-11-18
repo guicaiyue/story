@@ -67,3 +67,51 @@ jobs:
     secrets:
       AUTOLOOP_HOOK_URL: ${{ secrets.AUTOLOOP_HOOK_URL }}
       AUTOLOOP_SOURCE_KEY: ${{ secrets.AUTOLOOP_SOURCE_KEY }}
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 发上线事件并等结果
+        env:
+          HUB: ${{ secrets.AUTOLOOP_HOOK_URL }}
+          KEY: ${{ secrets.AUTOLOOP_SOURCE_KEY }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          MSG: main 测试通过
+          WAIT: "900"
+          UA: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36
+        run: |
+          set -euo pipefail
+          [ -n "$HUB" ] || { echo "没有配 AUTOLOOP_HOOK_URL"; exit 1; }
+          [ -n "$KEY" ] || { echo "没有配 AUTOLOOP_SOURCE_KEY"; exit 1; }
+          id="deploy.requested:${GITHUB_REPOSITORY}:${SHA}"
+          detail=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg ref "$REF" --arg sha "$SHA" --arg msg "$MSG" \
+            '{repo:$repo, ref:$ref, sha:$sha, message:$msg, paths:[]}')
+          payload=$(jq -cn --arg id "$id" --arg type "deploy.requested" --arg subject "$GITHUB_REPOSITORY" \
+            --arg summary "${GITHUB_REPOSITORY} ${SHA:0:12}" --arg detail "$detail" \
+            --arg link "https://github.com/${GITHUB_REPOSITORY}/commit/${SHA}" \
+            '{id:$id, type:$type, subject:$subject, summary:$summary, detail:$detail, link:$link}')
+          resp=$(curl -fsS -A "$UA" -X POST "$HUB/v1/events" -H "Authorization: Bearer $KEY" \
+            -H 'content-type: application/json' -d "$payload")
+          echo "$resp"
+          event=$(echo "$resp" | jq -r .event)
+          rounds=$(( WAIT / 4 ))
+          for i in $(seq 1 $rounds); do
+            sleep 4
+            body=$(curl -fsS -A "$UA" -H "Authorization: Bearer $KEY" "$HUB/v1/events/$event" || true)
+            [ -n "$body" ] || continue
+            state=$(echo "$body" | jq -r '(.runs[0].state) // "none"')
+            echo "第 $i 次：state=$state"
+            case "$state" in
+              done|nothing)
+                echo "$body" | jq -r '.runs[0].summary // ""'
+                exit 0 ;;
+              cancelled)
+                echo "这一轮被取消了："; echo "$body" | jq -c '.runs[0]' | head -c 600; exit 1 ;;
+            esac
+          done
+          echo "等了 $((WAIT/60)) 分钟还没结论，去中台看：$id" >&2
+          exit 1
