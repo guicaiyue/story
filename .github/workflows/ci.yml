@@ -52,22 +52,6 @@ jobs:
       - name: Admin unit tests
         run: pnpm --filter @story/admin test
 
-  # 只有 main 的推送才上线（PR 只跑测试）。测试通过后叫中台部署 web 后台 + 后端服务。
-  deploy:
-    needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: guicaiyue/nas-ops/.github/workflows/notify-autoloop.yml@main
-    with:
-      event_type: deploy.requested
-      subject: guicaiyue/story
-      sha: ${{ github.sha }}
-      ref: ${{ github.ref }}
-      message: main 测试通过
-      wait_seconds: 900
-    secrets:
-      AUTOLOOP_HOOK_URL: ${{ secrets.AUTOLOOP_HOOK_URL }}
-      AUTOLOOP_SOURCE_KEY: ${{ secrets.AUTOLOOP_SOURCE_KEY }}
-
   deploy:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
