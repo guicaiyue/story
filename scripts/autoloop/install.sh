@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # 一条命令把「小故事铺 + agent-autoloop」这套自动化装上（幂等，重复跑安全）。
 #
+# ⚠️ 2026-11-19 起这套探针已退役：中台的 story 规则只剩一条「小故事铺：自动上线」
+# （dispatch.task / story.drift / story.outage / story.release.verify / story.preflight.failed
+# 全都没有规则接了，发出去只会进「没人接」）。四个 timer 已在两台机器上 disable，
+# 本脚本只装文件、不再 enable——要恢复某条能力，先在 ~/Projects/nas-ops/hub/rules.json
+# 加回对应规则，再把这里的 disable 改回 enable。
+#
 #   bash scripts/autoloop/install.sh            # 装/更新两边
 #   bash scripts/autoloop/install.sh --check    # 只检查现状，不改任何东西
 #
@@ -61,8 +67,9 @@ for f in story-dispatch-issues.service story-dispatch-issues.timer; do
   run install -m 644 "$REPO_DIR/scripts/autoloop/systemd/$f" "$HOME/.config/systemd/user/$f"
 done
 run systemctl --user daemon-reload
-run systemctl --user enable --now story-dispatch-issues.timer
-ok "派单 timer 已挂（5 分钟）"
+# 探针已退役（见文件头）：只装文件，顺手把可能还挂着的 timer 摘掉
+run systemctl --user disable --now story-dispatch-issues.timer 2>/dev/null || true
+ok "派单 timer 已停用（探针退役，要恢复先加回规则）"
 
 say "2/5 NAS：探针脚本 + system unit"
 run ssh nas "install -d -m 700 $DEPLOY_DIR"
@@ -79,8 +86,9 @@ for f in story-poll.service story-poll.timer story-preflight.service story-prefl
   run scp -q "$REPO_DIR/scripts/autoloop/systemd/$f" "nas:/etc/systemd/system/$f"
 done
 run ssh nas "systemctl daemon-reload"
-run ssh nas "systemctl enable --now story-poll.timer story-preflight.timer"
-ok "两个 timer 已挂（10 分钟 / 6 小时）"
+# 探针已退役（见文件头）：只装文件，顺手把可能还挂着的 timer 摘掉
+run ssh nas "systemctl disable --now story-poll.timer story-preflight.timer 2>/dev/null || true"
+ok "两个 timer 已停用（探针退役，要恢复先加回规则）"
 
 say "3/5 NAS：把 story 的规则并进中台"
 run scp -q "$REPO_DIR/scripts/autoloop/merge-rules.py" "nas:$DEPLOY_DIR/merge-rules.py"
