@@ -217,6 +217,52 @@ class RemoteSettings {
       };
 }
 
+/// 当前账号（`GET /api/me`）。
+///
+/// 游客账号 `phone` 为 null —— App 里没有登录页时，每个安装都是一个新游客，
+/// 「补充账号信息」就是把手机号绑上来，换设备用手机号登录能回到同一个账号。
+class AccountInfo {
+  const AccountInfo({
+    required this.id,
+    this.phone,
+    this.nickname = '',
+    this.role = 'parent',
+    this.childCount = 0,
+    this.hasFamily = false,
+  });
+
+  final String id;
+  final String? phone;
+  final String nickname;
+  final String role;
+  final int childCount;
+  final bool hasFamily;
+
+  bool get isGuest => phone == null || phone!.isEmpty;
+
+  /// 列表与详情页顶部展示的名字。
+  String get displayName {
+    if (nickname.trim().isNotEmpty) return nickname.trim();
+    return isGuest ? '游客' : '家长';
+  }
+
+  /// 脱敏手机号：138****0004。
+  String get maskedPhone {
+    final p = phone;
+    if (p == null || p.length < 7) return '';
+    return '${p.substring(0, 3)}****${p.substring(p.length - 4)}';
+  }
+
+  factory AccountInfo.fromJson(Map<String, dynamic> json) => AccountInfo(
+        id: json['id'] as String? ?? '',
+        phone: json['phone'] as String?,
+        nickname: json['nickname'] as String? ?? '',
+        role: json['role'] as String? ?? 'parent',
+        childCount: (json['children'] as List?)?.length ?? 0,
+        hasFamily: json['family'] != null,
+      );
+}
+
 /// 分页包装。
 class Paged<T> {
   const Paged({

@@ -127,6 +127,11 @@ class _RootState extends State<_Root> {
       await state.api.ensureRegistered();
       if (!mounted) return;
       await state.loadSettings();
+      if (!mounted) return;
+      // 账号信息与收藏都依赖 token，必须排在注册之后。
+      await state.loadAccount();
+      if (!mounted) return;
+      await state.syncFavorites();
     });
   }
 

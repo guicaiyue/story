@@ -6,6 +6,7 @@ import '../services/api_client.dart';
 import '../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import 'account_screen.dart';
 import 'category_screen.dart';
 import 'parent_gate_screen.dart';
 import 'parent_screen.dart';
@@ -79,6 +80,46 @@ class _MineScreenState extends State<MineScreen> {
                 StoryTokens.s7,
               ),
               children: [
+                // 账号卡片：游客账号的唯一「补充信息」入口。
+                PaperCard(
+                  key: const Key('mine-account-card'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const AccountScreen()),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: p.surface2,
+                        child: Icon(Icons.person_outline, size: 20, color: p.accentInk),
+                      ),
+                      const SizedBox(width: StoryTokens.s3),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              state.account?.displayName ?? '账号',
+                              key: const Key('mine-account-name'),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: p.ink,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              accountSubtitle(state.account),
+                              style: TextStyle(fontSize: 12, color: p.ink3),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: p.ink3),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: StoryTokens.s6),
                 _BlockTitle('继续听'),
                 const SizedBox(height: StoryTokens.s3),
                 if (data.progress.isEmpty)

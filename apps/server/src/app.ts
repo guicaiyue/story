@@ -91,7 +91,7 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
   registerContentRoutes(app, opts.db);
   registerAudioRoutes(app, opts.db);
   registerAuthRoutes(app, opts.db, opts.sms ?? new NoopSmsAdapter(), opts.fixedSmsCode ?? '123456');
-  registerUserRoutes(app, opts.db, requireAuth);
+  registerUserRoutes(app, opts.db, requireAuth, opts.fixedSmsCode ?? '123456');
   registerPlayRoutes(app, opts.db, requireAuth);
   registerAdminRoutes(app, opts.db, requireRole);
 

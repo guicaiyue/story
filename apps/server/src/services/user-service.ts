@@ -102,3 +102,48 @@ export async function getMe(db: Db, accountId: string) {
   if (!account) throw AppError.notFound('账号不存在');
   return account;
 }
+
+/**
+ * 把手机号绑到当前账号（外部端「补充账号信息」）。
+ *
+ * 只做「空号 → 绑定」这一种情形：手机号已被别的账号占用时返回 409，让用户
+ * 改用手机号登录。游客数据合并的规则（03-decisions D6）仍未定，这一步不引入
+ * 合并语义，避免出现「绑完之后进度归谁」的模糊地带。
+ *
+ * 游客账号没有 family / setting（`loginAsGuest` 不建），绑定成功后顺手补齐，
+ * 否则后台的「家庭 / 儿童」统计永远是 0。
+ */
+export async function bindPhone(
+  db: Db,
+  accountId: string,
+  input: { phone: string; code: string },
+  expectedCode: string,
+) {
+  if (input.code !== expectedCode) throw AppError.unauthorized('验证码错误');
+
+  const owner = await db.account.findUnique({
+    where: { phone: input.phone },
+    select: { id: true },
+  });
+  if (owner && owner.id !== accountId) {
+    throw AppError.conflict('该手机号已绑定其他账号，请改用手机号登录');
+  }
+
+  try {
+    await db.account.update({ where: { id: accountId }, data: { phone: input.phone } });
+  } catch (error) {
+    // 并发绑定同一手机号时唯一索引会先于上面的检查抛 P2002，这里统一成 409，
+    // 不要让客户端看到 500。
+    if ((error as { code?: string }).code === 'P2002') {
+      throw AppError.conflict('该手机号已绑定其他账号，请改用手机号登录');
+    }
+    throw error;
+  }
+
+  const family = await db.family.findUnique({ where: { accountId }, select: { id: true } });
+  if (!family) await db.family.create({ data: { accountId } });
+  const setting = await db.setting.findUnique({ where: { accountId }, select: { id: true } });
+  if (!setting) await db.setting.create({ data: { accountId } });
+
+  return getMe(db, accountId);
+}

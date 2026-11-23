@@ -242,6 +242,78 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // —— 账号信息（外部端「补充账号信息」）——
+
+  /// 当前账号。null = 还没读到（启动第一帧，或注册还没完成）。
+  AccountInfo? _account;
+  AccountInfo? get account => _account;
+
+  bool get isGuest => _account?.isGuest ?? true;
+
+  /// 读当前账号。失败保留旧值 —— 账号信息是附加项，不能拦住启动。
+  Future<void> loadAccount() async {
+    try {
+      _account = await api.me();
+      notifyListeners();
+    } on ApiException {
+      // 静默：下次进账号页或重启会再读。
+    }
+  }
+
+  /// 改昵称。返回错误文案；成功返回 null。
+  Future<String?> updateNickname(String nickname) async {
+    final trimmed = nickname.trim();
+    if (trimmed.isEmpty) return '昵称不能为空';
+    try {
+      _account = await api.updateNickname(trimmed);
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
+  /// 给当前游客账号绑手机号。返回错误文案；成功返回 null。
+  ///
+  /// 绑定成功后 token 不变（同一个账号），所以进度与收藏都还在。
+  Future<String?> bindPhone({required String phone, required String code}) async {
+    try {
+      _account = await api.bindPhone(phone: phone, code: code);
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
+  }
+
+  /// 手机号登录（换设备回到同一账号）。成功后重读设置与收藏。
+  Future<String?> loginWithPhone({required String phone, required String code}) async {
+    try {
+      _account = await api.loginWithPhone(phone: phone, code: code);
+      notifyListeners();
+    } on ApiException catch (e) {
+      return e.message;
+    }
+    // 换了账号，家长设置与收藏都要跟着换，否则界面上还是上一个账号的数据。
+    await loadSettings();
+    await syncFavorites();
+    return null;
+  }
+
+  /// 用服务端收藏列表初始化本地集合。
+  ///
+  /// 缺了这一步，「收藏」心形在冷启动后永远是空心：本地集合从空开始，
+  /// 用户点一下等于把服务端已有的收藏再加一遍（幂等，看起来像成功），
+  /// 要点第二下才真的取消。
+  Future<void> syncFavorites() async {
+    try {
+      final entries = await api.favorites();
+      seedFavorites(entries.map((e) => e.storyId));
+    } on ApiException {
+      // 忽略：读不到就按未收藏显示，比抛错好。
+    }
+  }
+
   Future<void> _persistSettings() async {
     final patch = RemoteSettings(
       dailyLimitMin: _settings.dailyLimitMin,
