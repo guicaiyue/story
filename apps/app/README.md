@@ -36,16 +36,37 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.4:13300
 
 ### 发版（正式 APK）
 
+**正式发版走 CI，不用手工 build**（2026-11-23 起）：
+
 ```bash
-flutter build apk --release --dart-define=API_BASE_URL=https://api-story.xirizhi.cn
-# 产物：build/app/outputs/flutter-apk/app-release.apk（版本号取自 pubspec.yaml）
+# 1. 改版号（versionName 与 versionCode 一起升）
+$EDITOR apps/app/pubspec.yaml     # version: 0.1.5+6
+
+# 2. 推 apps/app/** 到 main → .github/workflows/android.yml 自动出包并发 Release
+git add apps/app/pubspec.yaml && git commit -m "release(app): 0.1.5" && git push
+```
+
+CI 做的事：Flutter 3.47.9 构建 → 从 secrets 还原 keystore → 跑
+`tool/build-release-apk.sh`（版号检查 / flutter test / 签名校验 / 基址校验 / 归档 sha256）
+→ 按 versionName 建 GitHub Release。签名指纹打进 Actions summary。
+
+**签名材料**：唯一副本 `~/Documents/story-keystore/`（进 restic 日备），
+CI 从 4 个 secrets 取（`ANDROID_KEYSTORE_BASE64` / `_STORE_PASSWORD` / `_KEY_ALIAS` / `_KEY_PASSWORD`）。
+证书 `CN=StoryNook`，SHA-256 `1D:06:C9:EA…:E9:20`。旧 keystore（`69:39:67:FA…`）已丢失，
+2026-11-23 换新，从 0.1.3 起可持续升级。
+
+本机手工出包（要 Flutter + SDK + keystore，仅离线排障时用）：
+
+```bash
+bash tool/build-release-apk.sh
+# 产物：releases/storynook-<versionName>.apk + .sha256
 ```
 
 打完后**必须**验两件事，否则可能又出一个装上去不能用的包：
 
 ```bash
 AAPT=$ANDROID_HOME/build-tools/35.0.0/aapt2
-$AAPT dump badging <apk> | grep ^package        # versionName 应为 0.1.1
+$AAPT dump badging <apk> | grep ^package        # versionName 应与 pubspec.yaml 一致（当前 0.1.4）
 $AAPT dump permissions <apk> | grep INTERNET    # 必须有联网权限（见下）
 ```
 

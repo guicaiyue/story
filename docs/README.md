@@ -14,8 +14,8 @@
 | 把服务跑起来（生产） | 根目录 [README.md](../README.md) 的「2.0 服务端与运营后台」一节 |
 | 改完代码检查有没有坏 | `./scripts/preflight.sh`（详见下文「三条命令」） |
 | **决定要不要上生产（历史清单，已执行）** | [product/20-approval-sheet.md](product/20-approval-sheet.md) |
-| 上线 / 重新上线（生产） | `./scripts/prod-deploy.sh status\|backup\|build\|migrate\|grants\|admin\|up\|smoke`；手册见 [product/12-prod-deploy-runbook.md](product/12-prod-deploy-runbook.md) |
-| 发版 | [product/release-notes-0.1.2.md](product/release-notes-0.1.2.md) |
+| 上线 / 重新上线（生产） | **推 main 就发布**（CI 建镜像 → NAS 拉镜像 + 容器内迁移 + 验收，见 [12-prod-deploy-runbook.md](product/12-prod-deploy-runbook.md) §0）。手工运维用 `./scripts/prod-deploy.sh status\|backup\|migrate\|up\|smoke` |
+| 发 APK | 改 `apps/app/pubspec.yaml` 版号后推 `apps/app/**`，CI 自动出包发 Release（`.github/workflows/android.yml`） |
 | 查某个决定为什么这么定 | [product/03-decisions.md](product/03-decisions.md) |
 | **自动化开发（issue 派单 / 漂移 / 预检 / 巡检）** | 2026-11-19 已整套删除：规则并进中台 nas-ops 的一条「小故事铺：自动上线」，四个探针（dispatch.task / story.drift / story.outage / story.release.verify / story.preflight.failed）都没有规则接，`scripts/autoloop/` 与两台机器上的 timer 一起删了。原文在 git 历史 |
 
@@ -23,10 +23,14 @@
 
 | 命令 | 干什么 | 什么时候跑 |
 | --- | --- | --- |
-| `./scripts/preflight.sh` | 迁移账本 + 服务端/后台测试（`FLUTTER_CHECK=1` 再加 App 58 用例） | 每次改完代码 |
+| `./scripts/preflight.sh` | 迁移账本 + 服务端/后台测试（`FLUTTER_CHECK=1` 再加 App 用例） | 每次改完代码 |
 | `./scripts/preflight.sh --e2e` | 再加端到端冒烟（临时容器 + 副本库，16 步） | 准备上线前 |
 | `./scripts/prod-deploy.sh status` | 生产库 / 容器 / 域名一眼看完（只读） | 任何时候 |
 | `./scripts/prod-deploy.sh smoke` | 生产全链路冒烟（`--write` 才写库，自动清理） | 上线后 / 重启后 |
+
+**preflight 要 pnpm + 能解析 `story-dev-postgres`**（开发库，不是生产库）：
+先 `docker start story-dev-postgres`。脚本自己检测 `/.dockerenv`，不在容器里就早退并给提示。
+**它是开发期门禁，与 NAS 无关**——`story-preflight.timer` 从来没被创建过，别以为它在定时跑。
 
 端到端冒烟本体是 `apps/server/scripts/e2e-smoke.mjs`，也可以单独对着任意服务跑：
 `BASE=http://host:3000 ADMIN_CODE=123456 node apps/server/scripts/e2e-smoke.mjs`。

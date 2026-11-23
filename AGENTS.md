@@ -7,7 +7,7 @@
 
 单库 monorepo，**三端都在 `apps/`**：服务端、运营后台、安卓客户端。1.0 静态站**已于 2026-11-14 彻底删除**
 （决策 D9），源码、根 Dockerfile、.dockerignore、四个契约测试全没了；**Flutter 客户端源码已于 2026-11-14
-从 git 历史（`aacce1b`）恢复到 `apps/app`**，现版本 0.1.3+4，63 个文件。
+从 git 历史（`aacce1b`）恢复到 `apps/app`**，现版本 0.1.4+5。
 
 ## 怎么跑
 
@@ -77,9 +77,9 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
    检测 `/.dockerenv`，不在容器里就早退。现在跑不起来（本机开发库已停）。
    别信「NAS 上每 6 小时跑一次」——`story-preflight.timer` **从来没被创建过**。
 
-## 当前状态（2026-11-14）
+## 当前状态（2026-11-23）
 
-- 唯一分支 `main`。服务端/后台版本 0.1.2；客户端 **0.1.3+4**（tag `v0.1.3`，2026-11-23 CI 出包）。
+- 唯一分支 `main`。服务端/后台版本 0.1.2；客户端 **0.1.4+5**（tag `v0.1.4`，2026-11-23 CI 出包）。
 - 生产在跑：**服务端 / 后台两个**域名 200，容器 `story-server-prod` / `story-admin-prod` healthy，
   TLS 到 2027-02-09。1.0 已彻底删除（D9），`story.xirizhi.cn` 返回 404 是正常的。
 - **三端源码都在仓库**：`apps/server`、`apps/admin`、`apps/app`（Flutter，2026-11-14 恢复）。
@@ -93,5 +93,6 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
   keystore 路径易错：Gradle 的 `file(storeFile)` 与脚本的检查都以 `android/app/` 为基准，
   所以文件必须落 `apps/app/android/app/keystore/`，不是 `android/keystore/`。
 - 待办：管理员手机号换真号、APK 真机验收、接真实短信通道。
-- 已知遗留：`story-dev-postgres` 上只剩 `story_dev` / `story_test` / `story_e2e_seed` 三个库，演练库已清完
-  （`story_e2e_seed` 是 `preflight --e2e` 的种子库，**别删**）。
+- 已知遗留：本机 `story-dev-postgres` 上只有 `story_dev` / `story_test` 两个库。
+  **`story_e2e_seed` 已经不在了**（2026-11-23 实测），所以 `preflight --e2e` 会 SKIP 并提示
+  「没有 story_e2e_seed 库」。要跑端到端得先造种子库，或 `E2E_DB=<库名>` 指定一个带 admin 账号的库。

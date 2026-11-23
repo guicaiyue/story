@@ -15,9 +15,11 @@
 > （2.8 MB / 57 条目，sha256 `a4a72c60…5784`），另仍在 git 历史里（删除提交的父提交可取出）。
 > 要恢复请看 [docs/product/03-decisions.md](docs/product/03-decisions.md) 的 D9。
 
-> **安卓客户端（`apps/app`）已于 2026-11-14 恢复到仓库**（Flutter 3.47.9 / Dart 3.13.7，0.1.2+3，63 个文件），
-> 从 git 历史 `aacce1b` 取回。签名材料（`android/key.properties` + keystore）**不入库**，在 NAS
-> `backup/keystore/`；APK 走 GitHub Releases 附件。怎么跑、怎么出包见 [apps/app/README.md](apps/app/README.md)。
+> **安卓客户端（`apps/app`）**：Flutter 3.47.9 / Dart 3.13.7，包名 `com.storynook.app`，
+> 当前 **0.1.4+5**。**出包在 CI**（`.github/workflows/android.yml`），推 `apps/app/**` 到 main
+> 或手动触发，Flutter 构建 → 从 secrets 还原 keystore → 发 GitHub Release 附件。
+> 本机不需要 Flutter / Android SDK。签名材料唯一副本在 `~/Documents/story-keystore/`
+> （进 restic 日备），CI 从 4 个 `ANDROID_*` secrets 取。见 [apps/app/README.md](apps/app/README.md)。
 
 ## 文档索引
 
@@ -26,20 +28,52 @@
 
 ## 服务端与运营后台
 
-### 一键上线（生产）
+### 发布链路（2026-11-23 起：推 main 就是发布）
+
+```
+① git push origin main
+② GitHub Actions  ci.yml
+     check  → server/admin 类型检查 + 后台单测
+     image  → 构建并推 xirizhi/story-server:<sha> / story-admin:<sha> 到 Docker Hub
+     deploy → 发 story.deploy 事件（detail 带 sha）
+③ NAS 部署机（/vol1/1000/docker/story/，只有 compose + .env，没有源码）
+     docker compose pull → run --rm migrate → up -d → 验收
+```
+
+**镜像只在 CI 构建**，部署机上不跑 `docker build`。回滚 = 改 `.env` 里的
+`STORY_TAG` 回上一个 sha，再 `pull` + `up -d`。
+
+### 运维命令
 
 ```bash
 ./scripts/prod-deploy.sh status        # 只读：生产库 / 容器 / 域名
 ./scripts/prod-deploy.sh backup        # 带时间戳的 pg_dump
-./scripts/prod-deploy.sh build         # 构建 story-server:m4 / story-admin:m4
-./scripts/prod-deploy.sh migrate       # 应用待执行迁移（需 DATABASE_URL）
-./scripts/prod-deploy.sh up            # docker compose up -d
+./scripts/prod-deploy.sh migrate       # 迁移（容器内跑，需 .env.prod 的 PROD_MIGRATE_DATABASE_URL）
+./scripts/prod-deploy.sh up            # docker compose pull + up -d
 ./scripts/prod-deploy.sh smoke         # 域名 + 读路径 + 后台登录/接口（不写库）
+./scripts/prod-deploy.sh grants        # 建/更新 story_app 并授权（需 STORY_APP_PASSWORD）
+./scripts/prod-deploy.sh admin --phone <手机号>   # 建首个管理员
 ```
 
-`all` = backup → build → migrate → up → smoke。`grants` / `admin` 需单独跑。
-生产编排是 [docker-compose.prod.yml](docker-compose.prod.yml)，环境变量读 `.env.prod`（**不入库**）。
+`all` = backup → migrate → up → smoke（**不含 build**；`grants` / `admin` 需单独跑）。
+`build` 保留但只用于离线排障，产物 tag 是 `local-<时间戳>`，不能当发布物。
+
+环境变量在 `.env.prod`（**不入库**），两个连接串分开：
+`PROD_DATABASE_URL` 给应用（`story_app`，无 DDL 权限）、
+`PROD_MIGRATE_DATABASE_URL` 给迁移（超级用户）。
 完整手册：[docs/product/12-prod-deploy-runbook.md](docs/product/12-prod-deploy-runbook.md)。
+
+**docker 相关文件全部在仓库根**（2026-11-18 收敛，`apps/*` 下已没有 Dockerfile）：
+
+| 文件 | 用途 |
+| --- | --- |
+| [Dockerfile.server](Dockerfile.server) + [Dockerfile.server.dockerignore](Dockerfile.server.dockerignore) | 服务端镜像（多阶段，运行层 node22-alpine） |
+| [Dockerfile.admin](Dockerfile.admin) + [Dockerfile.admin.dockerignore](Dockerfile.admin.dockerignore) | 后台镜像（运行层 nginx:alpine） |
+| [docker-compose.prod.yml](docker-compose.prod.yml) | 生产编排（server + admin + 可选 nginx-front） |
+| [nginx-front.conf](nginx-front.conf) | **可选** nginx 反代样例（profile `nginx-front`，默认不启用） |
+
+构建上下文永远是**仓库根**（CI 的 build-push-action 也是这么设的）。
+白名单（`.dockerignore`）必须与 Dockerfile 同名同目录，BuildKit 只认 `<Dockerfile>.dockerignore`。
 
 ### 改完代码检查
 

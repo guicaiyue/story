@@ -10,24 +10,37 @@
 2.0 服务端/运营后台在生产跑着（`api-story.xirizhi.cn` / `admin-story.xirizhi.cn`，HTTPS healthy，
 证书到 **2027-02-09**）。**1.0 静态站已于 2026-11-14 彻底删除**（决策 D9）：容器、镜像、
 部署目录、Traefik 路由都已清理，**仓库里的源码、根 Dockerfile、.dockerignore 和四个契约测试也删了**，
-`story.xirizhi.cn` / `story-api.xirizhi.cn` 已下线。整份归档在 NAS
-`/vol1/1000/story/backup/retire-1.0-20261114-000508/`，另仍在 git 历史里。
-仓库已收敛到**唯一版本 0.1.2**、**唯一分支 `main`**、**唯一 tag `v0.1.2`**。
-**三端源码都在仓库**（`apps/server`、`apps/admin`、`apps/app`）：Flutter 客户端已于 2026-11-14 从
-git 历史 `aacce1b` 恢复到 `apps/app`（0.1.2+3 / 63 文件）；签名材料与 APK 不入库（NAS `backup/keystore/`）。
+`story.xirizhi.cn` / `story-api.xirizhi.cn` 已下线。
+
+**2026-11-23 更新（部署方式与 APK 链路都变了，旧的先忘掉）**：
+
+- 服务端/后台 **0.1.2**；安卓客户端 **0.1.4+5**（tag `v0.1.4`）。
+- **部署机不再放源码**。`/vol1/1000/docker/story/` 只有 `docker-compose.yaml` + `.env`，
+  镜像从 Docker Hub 拉（`xirizhi/story-*:<commit sha>`）。
+- **推 main 就是发布**：CI `check → image → deploy`，然后中台规则「小故事铺：自动上线」
+  让 NAS 上的 dsh 执行 `pull → run --rm migrate → up -d → 验收`。
+  回滚 = 改 `.env` 的 `STORY_TAG` 回上一个 sha。
+- **APK 出包在 CI**（`.github/workflows/android.yml`），本机不需要 Flutter / Android SDK。
+  签名材料唯一副本 `~/Documents/story-keystore/`（进 restic 日备）+ 4 个 GitHub secrets。
+  旧 keystore 已丢失，2026-11-23 换新，从 0.1.3 起可持续升级。
+- ⚠️ NAS 的 `/vol1/1000/story` 备份区（含 1.0 归档、旧 keystore、APK）**已不存在**。
 
 ## 三分钟上手
 
 ```bash
-cd /vol1/1000/开发/NAS/story
+cd ~/Projects/story
 
 ./scripts/prod-deploy.sh status   # 只读：生产库 / 容器 / 域名
-./scripts/preflight.sh            # 迁移账本 + 服务端/后台测试（在 dsh-dev 容器里跑）
+
+# 服务端/后台测试（要 pnpm + 能解析 story-dev-postgres）
+docker start story-dev-postgres
+./scripts/preflight.sh            # 迁移账本 + 服务端/后台测试
 ./scripts/preflight.sh --e2e      # 再加端到端 16 步（临时容器 + 副本库）
 ```
 
-`preflight.sh` 必须在开发容器里跑：`docker exec dsh-dev bash -lc 'cd /vol1/1000/开发/NAS/story && ./scripts/preflight.sh'`
-（宿主上没有 pnpm，也解析不到 `story-dev-postgres`）。
+`preflight.sh` 自己会检测 `/.dockerenv`，不在容器里就早退并提示。
+**它是开发期门禁，连的是开发库 `story-dev-postgres`，与 NAS 生产环境无关。**
+（`story-preflight.timer` 从来没被创建过，别以为它在 NAS 上定时跑。）
 
 ## 已上线（2026-11-13）
 
@@ -36,23 +49,25 @@ cd /vol1/1000/开发/NAS/story
 | 生产库迁移 | **5/5**（`story_main=2197`、`categories=14`、audio 表 2 张、`account.status`、唯一约束） |
 | 库账号 | `story_app`（最小权限，`public` 无 CREATE，实测登录通过） |
 | 生产账号 | 1 个 admin（`acc_prod_admin_01`，手机号**占位** `13800138000`，待换真号） |
-| 容器 | `story-server-prod` / `story-admin-prod` 均 healthy；静态站 `story` 由 Watchtower 跟随 `main` |
-| 版本 | **0.1.2**（唯一 tag / 唯一 GitHub Release），APK 48.9 MiB，versionCode 3，正式签名 |
-| 执行记录 | `docs/product/24-prod-deploy-20261113.md`（含逐条命令、断言、回滚） |
+| 容器 | `story-server-prod` / `story-admin-prod` 均 healthy，镜像 tag = commit sha（`xirizhi/story-*:<sha>`） |
+| 版本 | 服务端/后台 **0.1.2**；客户端 **0.1.4+5**（tag `v0.1.4`，CI 出包，正式签名） |
+| 执行记录 | `docs/product/24-prod-deploy-20261113.md`（首次上线）、`12-prod-deploy-runbook.md` §0（2026-11-23 起的镜像形态） |
 
 ## 还剩什么
 
 | # | 事 | 谁做 | 依据 |
 | --- | --- | --- | --- |
 | ① | 管理员手机号换真号（一条 UPDATE） | 产品负责人 | `24-…md` §5 |
-| ② | APK 真机验收（无 adb 设备） | 产品负责人 | 装机跑：登录→首页→播放→收藏→平板横屏 |
+| ② | APK 真机验收（waydroid 已验过三 tab，真机未验） | 产品负责人 | 装机跑：登录→首页→播放→收藏→平板横屏 |
 | ③ | 真实短信通道（现用固定码，非 123456） | 上架前 | `24-…md` §9 |
 
 ~~TLS 证书到期~~：已续期，现证书 `notAfter=2027-02-09`（三个域名同一张 `CN=xirizhi.cn`）。
 
-**备份就在改动之前**：`/vol1/1000/story/backup/story-predeploy-20261113.dump`（4.13 MB）。
-keystore 备份：`/vol1/1000/story/backup/keystore/`（**丢了就只能换包名重发**，请异地再存一份）。
-App 源码归档：`/vol1/1000/story/backup/src/story-app-0.1.2-src.tar.gz`。
+**备份**：⚠️ NAS `/vol1/1000/story` 整个备份区**已不存在**（2026-11-23 实测），
+`story-predeploy-20261113.dump`、旧 keystore、APK 归档、1.0 退役归档全都没了。
+现在的 keystore 是 2026-11-23 新生成的，唯一副本 `~/Documents/story-keystore/`
+（进 restic 日备 → C970 + NAS 两层），CI 另存 4 个 secrets。
+**要恢复 1.0 源码只能从 git `499f138` 取。**
 
 ## 两处没做到的
 
