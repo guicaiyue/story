@@ -21,8 +21,16 @@ name: Android APK
 on:
   push:
     branches: [main]
+    # 只认会影响 APK 内容的路径。**不要写 apps/app/** 整目录** —— 改
+    # apps/app/README.md 也会触发重建并覆盖已发布 Release 的附件（2026-11-23
+    # 洁癖收尾时实测撞到：只改了文档，0.1.4 的 APK 被重新构建又上传了一遍）。
     paths:
-      - 'apps/app/**'
+      - 'apps/app/lib/**'
+      - 'apps/app/android/**'
+      - 'apps/app/pubspec.yaml'
+      - 'apps/app/pubspec.lock'
+      - 'apps/app/tool/**'
+      - 'apps/app/web/**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
     inputs:
