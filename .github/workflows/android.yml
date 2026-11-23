@@ -90,8 +90,10 @@ jobs:
 
       # 复用仓库里那条脚本：版号检查、flutter test、build、签名校验、
       # 基址校验、归档 sha256 全在里面。CI 与本地走同一条路径，不会漂移。
+      # 用 bash 显式调用而不是 ./tool/...：脚本的可执行位是 2026-11-23 才补上的，
+      # 显式解释器不依赖那个位（首次跑 CI 时正是 Permission denied 挂在这）。
       - name: Build signed APK
-        run: ./tool/build-release-apk.sh
+        run: bash tool/build-release-apk.sh
         working-directory: apps/app
         env:
           API_BASE_URL: https://api-story.xirizhi.cn
