@@ -12,13 +12,14 @@
 ## 怎么跑
 
 ```bash
-# 服务端/后台测试 —— 必须在开发容器里跑（CI 也跑不了服务端测试：要 Postgres）
-docker exec dsh-dev bash -lc 'cd /workspace/story && ./scripts/preflight.sh'
+# 服务端/后台测试 —— 要 pnpm + 能解析 story-dev-postgres；CI 跑不了（要 Postgres）
+# 先起开发库：docker start story-dev-postgres
+./scripts/preflight.sh
 
 # 生产状态（只读）
 ./scripts/prod-deploy.sh status
 
-# 安卓客户端（需要 Flutter SDK + Android SDK；开发容器里没有，装好后可用）
+# 安卓客户端（需要 Flutter SDK + Android SDK；本机当前没装）
 cd apps/app && flutter pub get && flutter test        # 58 个用例
 FLUTTER_CHECK=1 ./scripts/preflight.sh                 # 把 App 用例并进预检（默认关）
 ./apps/app/tool/build-release-apk.sh                   # 出正式签名包（见 apps/app/README.md）
@@ -66,9 +67,10 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
    **镜像构建只在 CI 发生，不在部署机上构建**；NAS 的 `/vol1/1000/docker/story/`
    只有 `docker-compose.yaml` + `.env`，**没有源码**。
    回滚 = 改 `.env` 的 `STORY_TAG` 回上一个 sha。
-   服务端 136 个测试 CI 跑不了（要 Postgres），真正的门禁是 `./scripts/preflight.sh`，
-   必须在 dsh-dev 容器里跑（宿主路径进不去）。注意 `story-preflight.timer` 在 NAS 上
-   并**不存在**（2026-11-23 实测），别以为它在定时跑。
+   服务端 136 个测试 CI 跑不了（要 Postgres），真正的门禁是 `./scripts/preflight.sh`。
+   **预检是开发期门禁，与 NAS 无关**：它连的是开发库 `story-dev-postgres`，脚本自己会
+   检测 `/.dockerenv`，不在容器里就早退。现在跑不起来（本机开发库已停）。
+   别信「NAS 上每 6 小时跑一次」——`story-preflight.timer` **从来没被创建过**。
 
 ## 当前状态（2026-11-14）
 
@@ -76,9 +78,11 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
 - 生产在跑：**服务端 / 后台两个**域名 200，容器 `story-server-prod` / `story-admin-prod` healthy，
   TLS 到 2027-02-09。1.0 已彻底删除（D9），`story.xirizhi.cn` 返回 404 是正常的。
 - **三端源码都在仓库**：`apps/server`、`apps/admin`、`apps/app`（Flutter，2026-11-14 恢复）。
-  ⚠️ 签名材料（`android/key.properties` + `android/app/keystore/`）**不在 NAS `backup/keystore/` 了**
-  ——整个 `/vol1/1000/story` 备份区在 2026-11-23 实测已不存在，本机与 git 历史也都没有。
-  **发 APK 前必须先确认 keystore 是否另有离线副本**，否则同签名的升级包再也出不来。
+  **APK 与 NAS 无关**：构建在本机（要 Flutter SDK，当前没装）、发布走 GitHub Releases 附件、
+  功能测试在本机 arch 装包（waydroid）。NAS 只跑生产服务端 + 后台。
+  ⚠️ 签名材料（`apps/app/android/key.properties` + `android/keystore/`）**已丢失**：本机全盘、
+  NAS 备份区、git 历史、本机 restic 快照（11-22）四处都没有。只影响发新 APK 升级包
+  （Android 要求同签名），服务端与 NAS 部署不受影响。**发版前必须先确认是否另有离线副本**。
 - 待办：管理员手机号换真号、APK 真机验收、接真实短信通道。
 - 已知遗留：`story-dev-postgres` 上只剩 `story_dev` / `story_test` / `story_e2e_seed` 三个库，演练库已清完
   （`story_e2e_seed` 是 `preflight --e2e` 的种子库，**别删**）。
