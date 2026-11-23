@@ -157,8 +157,19 @@ jobs:
             echo "第 $i 次：state=$state"
             case "$state" in
               done|nothing)
-                echo "$body" | jq -r '.runs[0].summary // ""'
-                exit 0 ;;
+                summary=$(echo "$body" | jq -r '.runs[0].summary // ""')
+                echo "$summary"
+                # 光看 state 不够：NAS 侧的部署动作失败时回「没上线：…」，
+                # 而中台的失败前缀只认「没跑成」/「FAILED」（worker/contract.ts
+                # 的 FAILED 常量），所以「没上线」被判成 done。以前这里直接
+                # exit 0，结果是 **CI 绿、生产没上线**——2026-11-18 的 #236
+                # 就是这么变成「做完了」的，只有一张 Telegram 卡片说真话。
+                case "$summary" in
+                  上线了*|没事可做*) exit 0 ;;
+                  *)
+                    echo "::error::NAS 侧没上线，看上面的原因和 Telegram 卡片"
+                    exit 1 ;;
+                esac ;;
               cancelled)
                 echo "这一轮被取消了："; echo "$body" | jq -c '.runs[0]' | head -c 600; exit 1 ;;
             esac
