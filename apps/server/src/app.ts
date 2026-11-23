@@ -2,6 +2,8 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { ZodError } from 'zod';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { Db } from './db.js';
 import { ok, fail, AppError } from './contract.js';
 import type { SmsAdapter } from './services/auth-service.js';
@@ -20,6 +22,38 @@ export type BuildOptions = {
   sms?: SmsAdapter;
   logger?: boolean | object;
 };
+
+/**
+ * `/api/health` 报的版本号。
+ *
+ * 原来这里是写死的 `'0.1.0-m1'`，package.json 已经是 0.1.2 了，于是线上
+ * health 报的版本比实际部署的旧两个版本 —— 排查「生产到底跑的是哪一版」时
+ * 反而被它误导。改成从 package.json 读，并加测试盯住两者一致
+ * （tests/content.test.ts 的 health 用例）。
+ *
+ * 路径按「向上找最近的 package.json」解析，因为 dev 与镜像里的层级不同：
+ *   dev:  apps/server/dist/src/app.js  → 上溯两级是 apps/server/
+ *   镜像: /app/src/app.js              → 上溯一级是 /app/
+ */
+function readServerVersion(): string {
+  let dir = import.meta.dirname;
+  for (let i = 0; i < 5; i += 1) {
+    const candidate = join(dir, 'package.json');
+    if (existsSync(candidate)) {
+      try {
+        const pkg = JSON.parse(readFileSync(candidate, 'utf8')) as { version?: string };
+        if (pkg.version) return pkg.version;
+      } catch {
+        // 读不动就继续往上找，最后回落到下面的兜底值
+      }
+      break;
+    }
+    dir = dirname(dir);
+  }
+  return 'unknown';
+}
+
+const SERVER_VERSION = readServerVersion();
 
 /**
  * Assembles the M1 server. Kept as a factory so tests can build an isolated
@@ -84,7 +118,7 @@ export async function buildApp(opts: BuildOptions): Promise<FastifyInstance> {
       db: 'up',
       latencyMs: Date.now() - start,
       uptimeSec: Math.round(process.uptime()),
-      version: '0.1.0-m1',
+      version: SERVER_VERSION,
     });
   });
 

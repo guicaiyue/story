@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
@@ -26,6 +27,16 @@ describe('GET /api/health', () => {
     expect(body.ok).toBe(true);
     expect(body.data.status).toBe('ok');
     expect(body.data.db).toBe('up');
+  });
+
+  // 曾经这里写死 '0.1.0-m1'，package.json 到 0.1.2 后没人改，
+  // 线上 health 报的版本比实际部署的旧两个版本，排查时反而误导。
+  it('reports the version from package.json', async () => {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      version: string;
+    };
+    const res = await app.inject({ method: 'GET', url: '/api/health' });
+    expect(res.json().data.version).toBe(pkg.version);
   });
 });
 
