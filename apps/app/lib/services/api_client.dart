@@ -63,8 +63,23 @@ class ApiClient {
 
   static const _timeout = Duration(seconds: 15);
 
+  /// 请求必须带 User-Agent。
+  ///
+  /// 生产入口前面有雷池 WAF：**不带 UA 的请求一律 403**（响应体是 `/.safeline/`
+  /// 的拦截页，不是服务端的 JSON）。Dart 的 `dart:io` HttpClient 默认不发 UA，
+  /// 所以 0.1.2/0.1.3 在真机与 waydroid 上所有接口都是 403，首页永远空白。
+  ///
+  /// 也不能用 `okhttp/*`、`Dart/*` 这类通用串——它们在 WAF 的扫描器指纹库里，
+  /// 一样被拦（实测 `okhttp/4.12.0` 与 `Dart/3.13 (dart:io)` 都是 403）。
+  /// 用一个自有标识，既过 WAF 也便于在服务端日志里区分客户端。
+  ///
+  /// 不拼编译期版本号：`String.fromEnvironment` 要额外加 `--dart-define`，
+  /// 漏了就会退化成空串、UA 变成 `storynook/ ()` 又被拦。固定串最稳。
+  static const _userAgent = 'storynook-app/1.0 (Android; Flutter)';
+
   Map<String, String> get _headers => {
         'Accept': 'application/json',
+        'User-Agent': _userAgent,
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
@@ -315,6 +330,51 @@ class ApiClient {
         body: patch,
         parse: (d) => RemoteSettings.fromJson(d as Map<String, dynamic>),
       );
+
+  // —— 账号信息（外部端「补充账号信息」）——
+
+  /// 当前账号。启动时读一次，用于「我的」页顶部与账号页。
+  Future<AccountInfo> me({bool retryOnUnauthorized = true}) => _get(
+        '/api/me',
+        null,
+        (d) => AccountInfo.fromJson(d as Map<String, dynamic>),
+        retryOnUnauthorized: retryOnUnauthorized,
+      );
+
+  /// 改昵称（`PUT /api/me`，部分更新）。
+  Future<AccountInfo> updateNickname(String nickname) => _send(
+        'PUT',
+        '/api/me',
+        body: {'nickname': nickname},
+        parse: (d) => AccountInfo.fromJson(d as Map<String, dynamic>),
+      );
+
+  /// 给当前游客账号绑手机号。成功返回最新账号；已被占用时抛 409。
+  Future<AccountInfo> bindPhone({required String phone, required String code}) => _send(
+        'POST',
+        '/api/me/bind-phone',
+        body: {'phone': phone, 'code': code},
+        parse: (d) => AccountInfo.fromJson(d as Map<String, dynamic>),
+      );
+
+  /// 手机号登录（换设备回到同一个账号）。成功后替换本地 token。
+  Future<AccountInfo> loginWithPhone({required String phone, required String code}) async {
+    final data = await _send<Map<String, dynamic>>(
+      'POST',
+      '/api/auth/login',
+      body: {'phone': phone, 'code': code},
+      retryOnUnauthorized: false,
+      parse: (d) => d as Map<String, dynamic>,
+    );
+    final fresh = data['token'] as String?;
+    if (fresh != null && fresh.isNotEmpty) {
+      token = fresh;
+      await tokenStore.write(fresh);
+    }
+    // 刚换完 token，401 只能是真无权：这里**不能**走「401 → 重新注册游客」的
+    // 兜底，否则会把刚登录的账号顶掉。
+    return me(retryOnUnauthorized: false);
+  }
 
   // —— 账号 ——
 

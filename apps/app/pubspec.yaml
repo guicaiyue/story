@@ -1,7 +1,7 @@
 name: story_app
 description: "小故事铺 · 给中国家庭的睡前 20 分钟"
 publish_to: 'none'
-version: 0.1.3+4
+version: 0.1.4+5
 
 environment:
   sdk: ^3.13.7
