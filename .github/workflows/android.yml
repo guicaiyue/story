@@ -60,8 +60,14 @@ jobs:
           cache: true
 
       # 签名材料：从 secrets 还原，用完 runner 就销毁。
-      # 路径必须与 build.gradle.kts 的 rootProject.file("key.properties") 对齐：
-      #   key.properties 在 apps/app/android/，storeFile 是相对 android/app/ 的路径。
+      #
+      # 路径必须是 apps/app/android/app/keystore/ —— 不是 android/keystore/。
+      # 两处都用「相对 android/app/」的解析：
+      #   build.gradle.kts 的 file(storeFile) 以 android/app/ 为基准；
+      #   tool/build-release-apk.sh 检查的是 "android/app/$KS"。
+      # 所以 key.properties 里写 storeFile=keystore/storynook-release.jks，
+      # 文件落在 android/app/keystore/storynook-release.jks。
+      # （2026-11-23 首次跑 CI 就因为放错这一级挂在「keystore 不存在」。）
       - name: Restore keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -73,16 +79,19 @@ jobs:
           [ -n "$KEYSTORE_B64" ] || { echo "没有配 ANDROID_KEYSTORE_BASE64"; exit 1; }
           [ -n "$STORE_PASSWORD" ] || { echo "没有配 ANDROID_STORE_PASSWORD"; exit 1; }
           [ -n "$KEY_ALIAS" ] || { echo "没有配 ANDROID_KEY_ALIAS"; exit 1; }
-          mkdir -p apps/app/android/keystore
-          printf '%s' "$KEYSTORE_B64" | base64 -d > apps/app/android/keystore/storynook-release.jks
+          mkdir -p apps/app/android/app/keystore
+          printf '%s' "$KEYSTORE_B64" | base64 -d > apps/app/android/app/keystore/storynook-release.jks
           cat > apps/app/android/key.properties <<EOF
           storeFile=keystore/storynook-release.jks
           storePassword=$STORE_PASSWORD
           keyAlias=$KEY_ALIAS
           keyPassword=${KEY_PASSWORD:-$STORE_PASSWORD}
           EOF
-          chmod 600 apps/app/android/keystore/storynook-release.jks apps/app/android/key.properties
-          echo "keystore 已还原（$(stat -c%s apps/app/android/keystore/storynook-release.jks) 字节）"
+          chmod 600 apps/app/android/app/keystore/storynook-release.jks apps/app/android/key.properties
+          echo "keystore 已还原（$(stat -c%s apps/app/android/app/keystore/storynook-release.jks) 字节）"
+          # 立刻核对指纹，与 ~/Documents/story-keystore/README.md 的 SHA-256 对得上才继续
+          keytool -list -v -keystore apps/app/android/app/keystore/storynook-release.jks \
+            -storepass "$STORE_PASSWORD" 2>/dev/null | grep -E "SHA256:|Alias name:" || true
 
       - name: Install dependencies
         run: flutter pub get
