@@ -46,18 +46,29 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
 
 ## 五条硬约束（踩过坑才写下来）
 
-1. **两个 app 各自用 `Dockerfile.dockerignore`，不是根 `.dockerignore`**。构建上下文是仓库根，
-   `apps/server/` 与 `apps/admin/` 下各有一份白名单，只放行自身构建必需的路径。
-   2.0 构建时根 `.dockerignore` 已被删除，不要再造一个——它当年是给 1.0 的 `COPY .` 用的。
-2. **`js/` 与 `index.html` 已不存在**。如果你在找它们，说明在看旧文档或旧分支；1.0 源码在
-   NAS `backup/retire-1.0-20261114-000508/story-1.0-source-*.tar.gz` 和 git 历史里。
+1. **docker 构建文件全在仓库根**（2026-11-18 收敛，`apps/*` 下已没有 Dockerfile）：
+   `Dockerfile.server` / `Dockerfile.admin` + 各自的 `<Dockerfile>.dockerignore` 白名单
+   （BuildKit 约定：`-f Dockerfile.server` 只认 `Dockerfile.server.dockerignore`），
+   加 `docker-compose.prod.yml`、`nginx-front.conf`、`.env*.example`。
+   构建上下文永远是仓库根（`docker build -f Dockerfile.server .`；正式构建在 CI，
+   本地 `./scripts/prod-deploy.sh build` 只出 `local-<时间戳>` tag 供离线排障）。
+   **不要造根 `.dockerignore`**——它不匹配任何一个 Dockerfile，白名单会静默失效，
+   1.4GB 上下文（含 487MB `node_modules`）会被整个传给 daemon。
+2. **`js/` 与 `index.html` 已不存在**。如果你在找它们，说明在看旧文档或旧分支；
+   1.0 源码只能从 git `499f138` 取（NAS 上的归档已随 `/vol1/1000/story` 备份区一起丢失，2026-11-23 实测）。
 3. **镜像构建只能用 alpine 基础镜像 + 官方 `registry.npmjs.org`**。
    本机 registry 源不给 Debian tag；npmmirror 从构建容器不可达。详见 README「构建期的四个坑」。
 4. **生产库 `story` 只读**。写操作走 runbook 里标注「需批准」的步骤；开发一律用 `story-dev-postgres`。
-5. **推 `main` 只跑 CI 静态检查（类型检查 + 后台单测），不发布任何东西**。
-   2.0 上线必须手动跑 `./scripts/prod-deploy.sh`。反过来说：别再以为「推上去就等于上线了」，
-   改完 `apps/` 不跑 prod-deploy，生产还是旧代码。服务端有 136 个测试但 CI 跑不了（要 Postgres），
-   真正的门禁是 NAS 上那个 `story-preflight.timer`（每 6 小时）。
+5. **推 `main` = 发布**（2026-11-23 改，旧约定「只跑检查不发布」已作废）。
+   链路三段：`check`（类型检查 + 后台单测）→ `image`（构建并推
+   `xirizhi/story-server:<sha>` / `story-admin:<sha>` 到 Docker Hub）→ `deploy`（发
+   `story.deploy` 事件，NAS 上的 dsh 拉镜像 + 迁移 + 起容器 + 验收）。
+   **镜像构建只在 CI 发生，不在部署机上构建**；NAS 的 `/vol1/1000/docker/story/`
+   只有 `docker-compose.yaml` + `.env`，**没有源码**。
+   回滚 = 改 `.env` 的 `STORY_TAG` 回上一个 sha。
+   服务端 136 个测试 CI 跑不了（要 Postgres），真正的门禁是 `./scripts/preflight.sh`，
+   必须在 dsh-dev 容器里跑（宿主路径进不去）。注意 `story-preflight.timer` 在 NAS 上
+   并**不存在**（2026-11-23 实测），别以为它在定时跑。
 
 ## 当前状态（2026-11-14）
 
@@ -65,7 +76,9 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
 - 生产在跑：**服务端 / 后台两个**域名 200，容器 `story-server-prod` / `story-admin-prod` healthy，
   TLS 到 2027-02-09。1.0 已彻底删除（D9），`story.xirizhi.cn` 返回 404 是正常的。
 - **三端源码都在仓库**：`apps/server`、`apps/admin`、`apps/app`（Flutter，2026-11-14 恢复）。
-  签名材料（`android/key.properties` + `android/app/keystore/`）**不入库**，在 NAS `backup/keystore/`。
+  ⚠️ 签名材料（`android/key.properties` + `android/app/keystore/`）**不在 NAS `backup/keystore/` 了**
+  ——整个 `/vol1/1000/story` 备份区在 2026-11-23 实测已不存在，本机与 git 历史也都没有。
+  **发 APK 前必须先确认 keystore 是否另有离线副本**，否则同签名的升级包再也出不来。
 - 待办：管理员手机号换真号、APK 真机验收、接真实短信通道。
 - 已知遗留：`story-dev-postgres` 上只剩 `story_dev` / `story_test` / `story_e2e_seed` 三个库，演练库已清完
   （`story_e2e_seed` 是 `preflight --e2e` 的种子库，**别删**）。

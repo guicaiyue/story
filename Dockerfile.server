@@ -7,7 +7,11 @@
 # alpine 系 tag，Debian 系 tag 会 401（见 M4 报告）。
 #
 # 构建上下文是**仓库根目录**（monorepo 需要 pnpm-workspace.yaml + lockfile），
-# 用同目录的 Dockerfile.dockerignore 把上下文从 1.4GB 压到几百字节。
+# 本文件也在仓库根；同名白名单 Dockerfile.server.dockerignore（BuildKit 的
+# `<Dockerfile>.dockerignore` 约定）把上下文从 1.4GB 压到几百字节。
+#
+# 构建（上下文必须是仓库根）：
+#   docker build -f Dockerfile.server -t story-server:m4 .
 
 ARG NODE_IMAGE=node:22-alpine
 # 依赖安装用官方 registry.npmjs.org。
@@ -155,6 +159,25 @@ COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/apps/server/dist ./dist
 COPY apps/server/package.json ./package.json
 COPY apps/server/prisma ./prisma
+
+# ---------------------------------------------------------------------------
+# 迁移执行器（让镜像自带「能迁移」的能力）
+#
+# 为什么必须在镜像里：生产部署是「NAS 拉镜像 + compose」，NAS 上没有源码，
+# 所以迁移不能靠宿主机的 `node apps/server/scripts/migrate.mjs`。镜像带着这两
+# 个脚本和 prisma/migrations，用 `docker compose run --rm migrate` 在
+# postgres-shared 网络里跑，容器内按别名 postgres 就能连库（宿主机解析不到，
+# 这是 2026-11-18 run #236 失败的原因）。
+#
+# 路径必须对上 migrate.mjs 自己的相对引用：
+#   MIGRATIONS_DIR = join(here, '..', 'prisma', 'migrations')  → /app/prisma/migrations ✓
+#   import '../src/load-env.mjs'                               → /app/src/load-env.mjs ✓
+#   import './split-sql.mjs'                                   → 同目录 /app/scripts/ ✓
+# dist/src/load-env.mjs 是 tsc 的编译产物（在 /app/dist/src/ 下），而
+# migrate.mjs 里写的是 `import '../src/load-env.mjs'`（相对 /app/scripts/ →
+# /app/src/load-env.mjs）。所以把编译好的那份复制到 /app/src/ 对齐路径。
+COPY --from=build /app/apps/server/dist/src/load-env.mjs ./src/load-env.mjs
+COPY apps/server/scripts/migrate.mjs apps/server/scripts/split-sql.mjs ./scripts/
 
 # 音频缓存目录（MP3 落盘，不进 Postgres）。先建好并 chown 给 node：
 # Docker 首次创建**命名卷**时会继承镜像里该目录的属主，所以 node 用户可写。

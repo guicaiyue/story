@@ -1,17 +1,64 @@
 # 12 · 生产 docker 部署 runbook
 
-> 状态：**已于 2026-11-13 执行并上线**（方案落盘 2026-11-11）。本文现在是可重复执行的
-> runbook：容器 `story-server-prod` / `story-admin-prod` 在跑，生产库已应用 5 条迁移。
+> 状态：**2026-11-23 改为镜像形态**。生产容器 `story-server-prod` / `story-admin-prod`
+> 仍在跑（生产库已应用 5 条迁移），但**部署方式变了**：不再在部署机上搬源码构建，
+> 改成「CI 构建镜像 → 推 Docker Hub → NAS 只放 compose 拉镜像」。
 > 首次执行记录见 [24-prod-deploy-20261113.md](24-prod-deploy-20261113.md)。
-> 配套文件：`docker-compose.prod.yml`、`.env.prod.example`、
-> `docker/nginx/story-prod.conf`（可选）。
+>
+> 配套文件：`docker-compose.prod.yml`、`.env.prod.example`、`nginx-front.conf`（仓库根）。
 >
 > 红线：生产库只读（DDL 待批准）、不碰 Vercel/Cloudflare。
-> 注：2026-11-13 起 push `main` **曾是**发布通道（CI 构建 1.0 静态站镜像 + Watchtower 自动更新）。
-> **2026-11-14 起 1.0 已退役（决策 D9）**：`build-image.yml` 已删除，换成只跑四个契约测试的
-> `contract-tests.yml`，不再构建镜像、不再推 Docker Hub、不再触发 Watchtower。
-> push `main` 现在只跑测试，不发布任何东西；2.0 两个容器由本 runbook 的 `prod-deploy.sh` 手动上线。
 > **本 runbook 中标注「需批准」的步骤，执行前逐项确认。**
+
+---
+
+## 0. 发布链路（2026-11-23 定，先读这一节）
+
+```
+① 改代码 → git push origin main
+② GitHub Actions (.github/workflows/ci.yml)
+     check  → server/admin 类型检查 + 后台单测
+     image  → 构建并推 xirizhi/story-server:<commit sha> 与 :latest
+              xirizhi/story-admin:<commit sha> 与 :latest
+     deploy → POST story.deploy 事件（detail 里带 sha）
+③ NAS 部署：中台规则「小故事铺：自动上线」→ xrznas/story/deploy/run.sh
+     docker compose pull      # 拉 <sha> 那个镜像
+     docker compose run --rm migrate   # 容器内跑迁移（prod-db 网络）
+     docker compose up -d
+     验收：容器 healthy + api/admin 域名 2xx
+```
+
+### 部署机上**只有两个文件**
+
+```
+/vol1/1000/docker/story/
+├── docker-compose.yaml     # 从本仓库 docker-compose.prod.yml 复制
+└── .env                    # 从 .env.prod.example 复制后填真实值（600）
+```
+
+**没有源码。** 不要再把仓库 clone 到 NAS、也不要在 NAS 上跑 `docker build`。
+
+### 为什么这么定（三条都是踩过的）
+
+1. **构建在部署机上 ⇒ 必须搬源码**。1.4GB 构建上下文 + node 工具链放生产机，
+   而镜像构建完之后源码在生产机上再无用途。
+2. **迁移在宿主机跑连不上库**。生产库是 NAS 的统一 `postgres` 容器（未发布宿主端口），
+   只在 `postgres-shared` 网络里按别名 `postgres` 可达；宿主机 `getent hosts postgres`
+   解析不到。2026-11-18 那次自动上线（中台 run #236）就死在这：
+   `Can't reach database server at postgres:5432`。
+   现在迁移放进 compose 的 `migrate` 服务（挂 `prod-db` 网络）里跑。
+3. **镜像 tag 必须带版本语义**。`story-server:m4` 是阶段代号，回滚时追溯不到 commit。
+   现在 tag 是 commit sha，回滚就是改 `.env` 里的 `STORY_TAG`。
+
+### 两个连接串，不是笔误
+
+| 变量 | 账号 | 谁用 |
+| --- | --- | --- |
+| `PROD_DATABASE_URL` | `story_app`（无 DDL） | server 容器 |
+| `PROD_MIGRATE_DATABASE_URL` | `postgres`（超级用户） | `migrate` 服务 |
+
+`story_app` 实测 `rolsuper=f`、`has_schema_privilege(CREATE)=f/f`（public 与 app 都不给
+DDL）——这是故意的。应用永远只用 `story_app`，迁移用超级用户单独跑一次。
 
 ---
 
@@ -21,8 +68,6 @@
 （dev 库、绑 0.0.0.0:13300/18082）」变成「生产形态（连生产库、经 traefik 走
 `api-story.xirizhi.cn` / `admin-story.xirizhi.cn`、不暴露调试端口）」。
 
-**本轮只出方案与校验，不启动、不碰生产库。**
-
 ---
 
 ## 2. 文件清单（本轮新增）
@@ -31,7 +76,7 @@
 | --- | --- |
 | `docker-compose.prod.yml` | 生产编排：server + admin +（可选）nginx 反代 |
 | `.env.prod.example` | 环境变量模板（无真实密钥，**要提交**） |
-| `docker/nginx/story-prod.conf` | **可选** nginx 反代样例（默认不启用） |
+| `nginx-front.conf` | **可选** nginx 反代样例（仓库根，默认不启用） |
 | `docs/product/12-prod-deploy-runbook.md` | 本文件 |
 | `.gitignore` | 加 `.env.prod` / `.env.prod.*`（防密钥进仓库） |
 
@@ -204,15 +249,33 @@ docker run --rm --network postgres-shared -e DATABASE_URL=<生产串> \
 
 ### 步骤 4 · 🟠 启动生产栈（**需批准**）
 
+**2026-11-23 起这里是「拉镜像 + 迁移 + 起容器」三步，不是就地构建。**
+在 NAS 的 `/vol1/1000/docker/story/`（只有 compose + `.env`）里跑：
+
 ```bash
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
-docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+cd /vol1/1000/docker/story
+docker compose --env-file .env config >/dev/null && echo "config OK"
+
+# 1) 拉镜像。STORY_TAG 在 .env 里（commit sha 或 latest）
+docker compose --env-file .env pull server admin
+
+# 2) 迁移（在 prod-db 网络里跑，容器内按别名 postgres 连库）
+docker compose --env-file .env run --rm migrate
+# 只看账本不动库：
+docker compose --env-file .env run --rm --entrypoint node migrate scripts/migrate.mjs --status
+
+# 3) 起容器
+docker compose --env-file .env up -d
+docker compose --env-file .env ps
 ```
 
 验证点：
 - `story-server-prod` 健康（`healthy`）；
 - 容器内 `wget -qO- http://127.0.0.1:3000/api/health` → `db=up`；
 - **`db=up` 不等于可用** —— 必须再打一次真实写路径（见步骤 5）。
+
+**回滚**：把 `.env` 里的 `STORY_TAG` 改回上一个 sha（或 `legacy-m4` 锚点），
+再 `pull` + `up -d`。迁移不回滚（迁移本身幂等，向前兼容由迁移文件保证）。
 
 ### 步骤 5 · 端到端预检（**只读，无需批准**）
 

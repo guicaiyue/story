@@ -8,20 +8,23 @@
 # 用法：
 #   ./scripts/prod-deploy.sh status        # 只读：生产库/容器/域名的当前状态
 #   ./scripts/prod-deploy.sh backup        # 取一份带时间戳的生产备份
-#   ./scripts/prod-deploy.sh build         # 构建 server/admin 生产镜像
-#   ./scripts/prod-deploy.sh migrate       # 应用待执行迁移（需 DATABASE_URL）
+#   ./scripts/prod-deploy.sh migrate       # 应用待执行迁移（容器内跑，需 PROD_MIGRATE_DATABASE_URL）
 #   ./scripts/prod-deploy.sh grants        # 建/更新 story_app 并授权（需 STORY_APP_PASSWORD）
 #   ./scripts/prod-deploy.sh admin --phone 13800138000   # 建首个管理员
-#   ./scripts/prod-deploy.sh up            # docker compose up -d
+#   ./scripts/prod-deploy.sh up            # docker compose pull + up -d
 #   ./scripts/prod-deploy.sh smoke         # 域名 + 读路径 + 后台登录/接口（不写库）
 #   ./scripts/prod-deploy.sh smoke --write # 再加游客注册 + TTS，结束自动清理
-#   ./scripts/prod-deploy.sh all           # backup → build → migrate → up → smoke（不含 grants/admin）
+#   ./scripts/prod-deploy.sh all           # backup → migrate → up → smoke（不含 grants/admin）
+#   ./scripts/prod-deploy.sh build         # 仅离线排障：本地构建，产物不带 sha tag
+#
+# 2026-11-23 起镜像由 CI 构建推 Docker Hub，本脚本**不再构建发布物**；
+# 它负责的是「在部署机上拉镜像 + 迁移 + 起容器 + 验收」。
 #
 # 需要的环境变量（缺了就报错，不猜）：
-#   DATABASE_URL            迁移用（超级用户）
-#   STORY_APP_PASSWORD      仅 grants 需要
-#   PG_CONTAINER            默认 postgres
-#   API_HOST / ADMIN_HOST   默认 api-story.xirizhi.cn / admin-story.xirizhi.cn
+#   PROD_MIGRATE_DATABASE_URL  迁移用（超级用户），写在 .env.prod
+#   STORY_APP_PASSWORD         仅 grants 需要
+#   PG_CONTAINER               默认 postgres
+#   API_HOST / ADMIN_HOST      默认 api-story.xirizhi.cn / admin-story.xirizhi.cn
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -66,23 +69,37 @@ cmd_backup() {
 }
 
 cmd_build() {
-  say "构建 server 镜像"
-  docker build -f "$REPO/apps/server/Dockerfile" \
-    -t story-server:m4 -t story-server:prod-0.1.2 \
+  # 2026-11-23 退役「在部署机上构建」：镜像改由 GitHub Actions 构建推 Docker Hub。
+  # 留这段本地构建只是为了离线排障，产物不带 sha tag，不能当发布物用。
+  say "⚠️ 生产构建已移交 CI（.github/workflows/ci.yml 的 image job）"
+  cat <<'EOF'
+正式发布：git push origin main → CI 构建并推 xirizhi/story-server:<sha> / :latest
+本机构建只用于离线排障，tag 固定为 local-<时间戳>，不要拿去部署。
+EOF
+  local ts
+  ts=$(date +%Y%m%d-%H%M)
+  say "构建 server 镜像（本地排障用）"
+  docker build -f "$REPO/Dockerfile.server" \
+    -t "story-server:local-$ts" \
     --build-arg NPM_REGISTRY=https://registry.npmjs.org "$REPO"
-  say "构建 admin 镜像"
-  docker build -f "$REPO/apps/admin/Dockerfile" \
-    -t story-admin:m4 -t story-admin:prod-0.1.2 \
+  say "构建 admin 镜像（本地排障用）"
+  docker build -f "$REPO/Dockerfile.admin" \
+    -t "story-admin:local-$ts" \
     --build-arg VITE_API_BASE= --build-arg NPM_REGISTRY=https://registry.npmjs.org "$REPO"
   docker images --format '{{.Repository}}:{{.Tag}}\t{{.CreatedSince}}\t{{.Size}}' | grep -E 'story-(server|admin)'
 }
 
 cmd_migrate() {
-  need DATABASE_URL
-  say "迁移状态（只读）"
-  ( cd "$REPO/apps/server" && DATABASE_URL="$DATABASE_URL" node scripts/migrate.mjs --status )
-  say "应用迁移"
-  ( cd "$REPO/apps/server" && DATABASE_URL="$DATABASE_URL" node scripts/migrate.mjs )
+  # 2026-11-23 改成在容器里跑：生产库只在 postgres-shared 网络内按别名 postgres 可达，
+  # 宿主机解析不到（2026-11-18 run #236 就死在这）。
+  # 连接串用 PROD_MIGRATE_DATABASE_URL（超级用户），与应用的 story_app 分开。
+  [[ -f "$REPO/.env.prod" ]] || die "缺 .env.prod"
+  grep -q '^PROD_MIGRATE_DATABASE_URL=' "$REPO/.env.prod" ||
+    die ".env.prod 里没有 PROD_MIGRATE_DATABASE_URL（迁移要超级用户，见 .env.prod.example）"
+  say "迁移状态（只读，容器内）"
+  "${COMPOSE[@]}" run --rm --entrypoint node migrate scripts/migrate.mjs --status
+  say "应用迁移（容器内）"
+  "${COMPOSE[@]}" run --rm --entrypoint node migrate scripts/migrate.mjs
 }
 
 cmd_grants() {
@@ -120,6 +137,8 @@ cmd_up() {
   [[ -f "$REPO/.env.prod" ]] || die "缺 .env.prod"
   say "校验 compose"
   "${COMPOSE[@]}" config >/dev/null && echo "config OK"
+  say "拉镜像（STORY_TAG=$(grep -E '^STORY_TAG=' "$REPO/.env.prod" | cut -d= -f2- || echo latest)）"
+  "${COMPOSE[@]}" pull --quiet server admin
   say "起生产栈"
   "${COMPOSE[@]}" up -d
   sleep 15
@@ -177,6 +196,6 @@ case "$sub" in
   admin)   cmd_admin "$@" ;;
   up)      cmd_up ;;
   smoke)   cmd_smoke "$@" ;;
-  all)     cmd_backup; cmd_build; cmd_migrate; cmd_up; cmd_smoke ;;
+  all)     cmd_backup; cmd_migrate; cmd_up; cmd_smoke ;;
   *) die "未知子命令 $sub（status|backup|build|migrate|grants|admin|up|smoke|all）" ;;
 esac

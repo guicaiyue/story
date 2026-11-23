@@ -4,9 +4,18 @@ name: CI
 # （umami 埋点 / pREST 参数编码 / analytics 队列 / EdgeTTS 生命周期）测的都是
 # 1.0 的 js/ 与 index.html，随之一起删除。
 #
-# 现在 CI 只做 2.0 的静态检查：类型检查 + 后台单元测试。
-# 服务端测试需要 Postgres，CI 里没有库，所以不在这里跑 —— 它在 NAS 的
-# preflight（story-preflight.timer 每 6 小时）里跑，那才是真正的门禁。
+# 发布链路（2026-11-23 定，三段）：
+#   ① check  — 类型检查 + 后台单测
+#   ② image  — 构建并推 xirizhi/story-server:<sha> / story-admin:<sha> 到 Docker Hub
+#   ③ deploy — 发 story.deploy 事件，由 NAS 上的 dsh 按「已有镜像 + 仓库文档」部署
+#
+# 为什么镜像在 CI 构建而不是部署机上构建：
+#   部署机上构建就得把整个仓库搬到生产机（1.4GB 上下文 + node 工具链），
+#   而且镜像 tag 只能是阶段代号，回滚时追溯不到 commit。CI 构建用 commit sha 当
+#   tag，回滚就是把 STORY_TAG 改回上一个 sha。
+#
+# 服务端 136 个测试要 Postgres，CI 里没有库，所以不在这里跑 —— 它们在 NAS 的
+# preflight 里跑（./scripts/preflight.sh，必须在 dsh-dev 容器内）。
 
 on:
   push:
@@ -52,8 +61,64 @@ jobs:
       - name: Admin unit tests
         run: pnpm --filter @story/admin test
 
-  deploy:
+  # ---------------------------------------------------------------------------
+  # ② 构建并推送镜像
+  #
+  # 只在推 main 时跑（PR 不推镜像）。tag 用 commit sha：这是回滚的唯一凭据。
+  # 两个镜像分开构建，互不阻塞；任一失败都不发上线事件。
+  #
+  # 需要的 secrets：DOCKERHUB_USERNAME / DOCKERHUB_TOKEN（仓库里已有，1.0 时代在用）。
+  # ---------------------------------------------------------------------------
+  image:
     needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: server
+            dockerfile: Dockerfile.server
+            repository: story-server
+          - name: admin
+            dockerfile: Dockerfile.admin
+            repository: story-admin
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 构建上下文永远是仓库根（monorepo 要 pnpm-workspace.yaml + lockfile）。
+      # 白名单 Dockerfile.<名字>.dockerignore 由 BuildKit 自动按 -f 的文件名匹配。
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          build-args: |
+            NPM_REGISTRY=https://registry.npmjs.org
+            VITE_API_BASE=
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.repository }}:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.repository }}:latest
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    needs: [check, image]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -64,7 +129,7 @@ jobs:
           KEY: ${{ secrets.AUTOLOOP_SOURCE_KEY }}
           REF: ${{ github.ref }}
           SHA: ${{ github.sha }}
-          MSG: main 测试通过
+          MSG: 镜像已推送
           WAIT: "900"
           UA: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36
         run: |
@@ -72,6 +137,7 @@ jobs:
           [ -n "$HUB" ] || { echo "没有配 AUTOLOOP_HOOK_URL"; exit 1; }
           [ -n "$KEY" ] || { echo "没有配 AUTOLOOP_SOURCE_KEY"; exit 1; }
           id="story.deploy:${GITHUB_REPOSITORY}:${SHA}"
+          # sha 是 NAS 侧要部署的镜像 tag（STORY_TAG），必须带过去。
           detail=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg ref "$REF" --arg sha "$SHA" --arg msg "$MSG" \
             '{repo:$repo, ref:$ref, sha:$sha, message:$msg, paths:[]}')
           payload=$(jq -cn --arg id "$id" --arg type "story.deploy" --arg subject "$GITHUB_REPOSITORY" \

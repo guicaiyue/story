@@ -1,23 +1,27 @@
-# 小故事铺 2.0 · 生产编排（**方案文件，本文件不启动任何东西**）
+# 小故事铺 2.0 · 生产编排（镜像形态）
 #
-#   ⛔ 本文件是「第 2 项：生产 docker 部署」的方案落盘。**尚未执行、不可擅自 up**。
-#      真正启动前需产品负责人逐项批准（见 docs/product/12-prod-deploy-runbook.md §5）。
+#   ⛔ 本文件不含 `build:`，也不假设旁边有源码。NAS 上只放这一个文件和 .env，
+#      镜像从 Docker Hub 拉（`xirizhi/story-server` / `xirizhi/story-admin`）。
 #
-# 用法（先看 runbook，不要直接复制粘贴）：
-#   docker compose --env-file .env.prod -f docker-compose.prod.yml config      # 只校验
-#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d       # ← 需批准
+# 发布链路（2026-11-23 定）：
+#   ① 改代码 → git push github
+#   ② GitHub Actions（.github/workflows/ci.yml 的 image job）构建镜像并推 Docker Hub
+#   ③ NAS 按「已有镜像 + 本仓库的文档」部署：docker compose pull → run --rm migrate → up -d
 #
-# 为什么是**独立文件**而不是覆盖 docker-compose.m4.yml（08 §A3 原方案是覆盖）：
-#   1. m4 文件里写死了 `container_name: story-server` / `story-admin`，与联调栈同名，
-#      覆盖时无法并存（prod 起不来，或把联调栈顶掉）；
-#   2. m4 发布宿主机端口 13300/18082 并绑 0.0.0.0，生产不该再暴露这些调试端口；
-#   3. m4 的 DATABASE_URL 指向 dev 库，覆盖时若漏改一项就会连错库 —— 独立文件更安全。
+# 为什么改掉「NAS 上就地构建」：
+#   * 构建发生在部署机上，就得把整个仓库搬到生产机（1.4GB 上下文、node 工具链）；
+#   * 生产机上放源码，等于把构建期依赖和源码一起暴露在公网服务旁边；
+#   * 镜像 tag 必须是 commit sha 才能回滚，`story-server:m4` 是阶段代号，追溯不到版本。
+#   1.0 时代就是这么做的（build-push-action 推 xirizhi/story:${sha} + :latest），
+#   2.0 一度退化成就地构建，现在改回来。
 #
-# 与真实边缘的关系（**重要**，08 §1.5 已澄清）：本机边缘是 **Traefik v3.4**，不是手写
-# nginx。所以 TLS 与域名路由走 server/admin 容器上的 **traefik label**（这是 08 §C3
-# 的「路线①」，复用现成 *.xirizhi.cn 通配证书，零证书改动）。文件末尾另附一个
-# **nginx 反代样例**（profile: nginx-front，默认不启用），只作为「不想用 traefik
-# label」时的替代形态。
+# 用法（在 NAS 的 /vol1/1000/docker/story/，只有本文件 + .env）：
+#   docker compose pull                                  # 拉 STORY_TAG 指的版本
+#   docker compose run --rm migrate                      # 迁移（超级用户，独立网络）
+#   docker compose up -d                                 # 起服务
+#   docker compose --env-file .env config                # 只校验
+#
+# 回滚：把 .env 里的 STORY_TAG 改成上一个 sha（或 legacy-m4 锚点），再 pull + up -d。
 
 name: story-prod
 
@@ -26,9 +30,9 @@ services:
   # API 服务
   # ---------------------------------------------------------------------------
   server:
-    # 复用联调栈已构建好的镜像（apps/server/Dockerfile 产物）。
-    # 要重建：docker compose --env-file .env.prod -f docker-compose.prod.yml build server
-    image: story-server:m4
+    # 镜像由 CI 构建推送；tag 用 commit sha（STORY_TAG），:latest 只作便利别名。
+    # 回滚就是把 STORY_TAG 换回上一个 sha —— 这是「tag 带版本语义」的全部意义。
+    image: xirizhi/story-server:${STORY_TAG:-latest}
     container_name: story-server-prod
     restart: unless-stopped
 
@@ -101,7 +105,7 @@ services:
   # 运营后台（镜像内已是 nginx：静态产物 + /api 反代到 server）
   # ---------------------------------------------------------------------------
   admin:
-    image: story-admin:m4
+    image: xirizhi/story-admin:${STORY_TAG:-latest}
     container_name: story-admin-prod
     restart: unless-stopped
 
@@ -146,7 +150,7 @@ services:
   #     --profile nginx-front up -d
   #
   # 启用它时，应把上面 server/admin 的 traefik label 去掉，改由本服务统一对外，
-  # 否则两套路由会争同一域名。配置见 docker/nginx/story-prod.conf。
+  # 否则两套路由会争同一域名。配置见仓库根 nginx-front.conf。
   # 它通过 edge（traefik-public）解析 server / admin —— 三个服务同在该网络。
   # ---------------------------------------------------------------------------
   nginx-front:
@@ -156,7 +160,7 @@ services:
     profiles: ["nginx-front"]
 
     volumes:
-      - ./docker/nginx/story-prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx-front.conf:/etc/nginx/conf.d/default.conf:ro
 
     depends_on:
       server:
@@ -180,6 +184,35 @@ services:
       traefik.http.routers.story-prod-admin.entrypoints: "websecure"
       traefik.http.routers.story-prod-admin.tls: "true"
       traefik.http.services.story-prod-admin.loadbalancer.server.port: "80"
+
+  # ---------------------------------------------------------------------------
+  # 迁移（一次性，不常驻）
+  #
+  #   docker compose run --rm migrate
+  #
+  # 为什么要单独一个服务，而不是在宿主机跑 node scripts/migrate.mjs：
+  #   生产库是 NAS 上的统一 postgres 容器（未发布宿主端口），只在 postgres-shared
+  #   网络里按别名 `postgres` 可达。宿主机上 `getent hosts postgres` 解析不到，
+  #   2026-11-18 那次自动上线就是这么失败的（Can't reach database server at
+  #   postgres:5432）。放进同一个网络里跑，别名自然通。
+  #
+  # 为什么用独立的连接串 PROD_MIGRATE_DATABASE_URL：
+  #   迁移要 DDL（CREATE SCHEMA / ALTER TABLE），而应用账号 story_app 实测
+  #   rolsuper=f、has_schema_privilege(CREATE)=f/f，故意不给 DDL 权限。
+  #   两个连接串分开是设计，不是疏漏：应用永远只用 story_app。
+  #
+  # profile: ["migrate"] → `docker compose up -d` 不会起它，只有显式
+  #   `run --rm migrate` 才用。
+  # ---------------------------------------------------------------------------
+  migrate:
+    image: xirizhi/story-server:${STORY_TAG:-latest}
+    profiles: ["migrate"]
+    networks:
+      - prod-db
+    environment:
+      DATABASE_URL: ${PROD_MIGRATE_DATABASE_URL:?PROD_MIGRATE_DATABASE_URL 未设置（迁移需要超级用户，见 .env.prod.example）}
+    # 镜像里的迁移执行器；`--status` 只读，用来核对账本。
+    command: ["node", "scripts/migrate.mjs"]
 
 networks:
   # 生产库所在网络（既有，外部创建）。生产 postgres 未发布宿主端口（08 §1.4 R7），
