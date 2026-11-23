@@ -96,11 +96,11 @@ docker start story-dev-postgres
 
 | 坑 | 表现 | 怎么办 |
 | --- | --- | --- |
-| 彩排库 ≠ 冒烟库 | `--e2e` 用彩排库时后台 4 步必然 403（那里没有管理员） | 用 `E2E_DB=story_e2e_seed` |
-| 命令里 `pnpm` 找不到 | `docker exec ... sh -c 'pnpm'` 报 command not found | 用 `bash -lc` |
+| 彩排库 ≠ 冒烟库 | `--e2e` 用彩排库时后台 4 步必然 403（那里没有管理员） | 用带 admin 账号的库：`E2E_DB=<库名>` |
 | 无头截图四连坑 | EACCES / 找不到 puppeteer / 屏与屏状态串 / 截到半截 | 出图脚本与原型已随 `docs/design/` 移出仓库，重做时从头搭 |
-| 面板 API 401 | 少登录 cookie | `docker logs dsh-dev \| grep token=` 取 URL 换 cookie，见插件仓 `dsh-plugins/dsh-task-cards/docs/commands.md` |
 | 度量被测试污染 | 数字莫名其妙涨 | 计数器写盘前先隔离测试环境（Horon 122） |
+| **App 首页空白 + `HTTP 403`** | 所有接口都 403，UI 树写「响应解析失败」 | **雷池 WAF 拦无 UA 请求**。`ApiClient._headers` 必须带 `User-Agent`，且不能用 `okhttp/*`、`Dart/*` 这类串（在 WAF 扫描器指纹库）。2026-11-23 已修，从 0.1.4 起正常 |
+| **改文档触发 APK 重建** | 只改了 README，Release 附件被重新上传覆盖 | `android.yml` 的 `paths` 已收窄到 lib/android/tool/web/pubspec，不要再写 `apps/app/**` |
 
 ## 文档入口
 
@@ -115,7 +115,8 @@ docker start story-dev-postgres
 
 ## 交接时的一句话建议
 
-**域名现在真的打得开了**——先装 0.1.2 的 APK 上真机走一遍（登录→听故事→收藏→平板横屏），
-这一步只有真机能验。之后才是换管理员真号、接短信通道。
-别在没有备份的情况下动生产；备份与回滚步骤都在 `24-prod-deploy-20261113.md` §10。
+**域名现在真的打得开了**——装最新 APK（`v0.1.4`）上真机走一遍（登录→听故事→收藏→平板横屏），
+这一步只有真机能验（waydroid 已验过三 tab 渲染，真机未验）。之后才是换管理员真号、接短信通道。
+别在没有备份的情况下动生产；备份与回滚步骤都在 `24-prod-deploy-20261113.md` §10，
+但注意**那份里写的 NAS 备份路径已经不存在了**（见上文）。
 提交与发版这两件事 2026-11-13 已经做完，不用再排进计划。

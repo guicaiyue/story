@@ -78,11 +78,17 @@
 ### 改完代码检查
 
 ```bash
-docker exec dsh-dev bash -lc 'cd /vol1/1000/开发/NAS/story && ./scripts/preflight.sh'
+docker start story-dev-postgres   # 首次或库停了才要
+./scripts/preflight.sh
 ```
 
-`preflight.sh` 必须在开发容器里跑（宿主上没有 pnpm，也解析不到 `story-dev-postgres`）。
-它检查迁移账本 + 服务端测试 + 后台测试；`--e2e` 再加 16 步端到端冒烟（临时容器 + 副本库）。
+`preflight.sh` 要 pnpm + 能解析 `story-dev-postgres`（开发库，不是生产库）。
+脚本自己检测 `/.dockerenv`，不在容器里就早退并提示。
+**它是开发期门禁，与 NAS 生产环境无关**——`story-preflight.timer` 从来没被创建过。
+
+它检查迁移账本 + 服务端测试（136）+ 后台测试（63）；`--e2e` 再加 16 步端到端冒烟
+（临时容器 + 副本库）。注意 `story_e2e_seed` 这个种子库现在不存在，`--e2e` 会 SKIP，
+要跑就用 `E2E_DB=<带 admin 账号的库名>` 指定。
 
 ### 生产库只读核对
 
