@@ -1,0 +1,155 @@
+name: Android APK
+
+# 安卓客户端出包：Flutter 构建 → 正式签名 → 自检 → 发 GitHub Release。
+#
+# 为什么在 CI 出包而不是本机：
+#   本机不需要装 Flutter / Android SDK / JDK，换机器也不用重建工具链；
+#   签名材料从 secrets 临时还原到 runner（一次性环境，用完即弃）。
+#
+# 触发：
+#   - 推 apps/app/** 到 main  → 出包并**发 Release**（tag = v<versionName>）
+#   - 手动 workflow_dispatch   → 出包，可选择只出 artifact 不发 Release
+#
+# 需要的 secrets（见 ~/Documents/story-keystore/README.md）：
+#   ANDROID_KEYSTORE_BASE64    base64 -w0 storynook-release.jks
+#   ANDROID_STORE_PASSWORD     storePassword
+#   ANDROID_KEY_ALIAS          固定 storynook
+#   ANDROID_KEY_PASSWORD       keyPassword
+#
+# 服务端/后台的发布是 ci.yml，与本文件互不影响。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/app/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: '发 GitHub Release'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write   # 建 Release 要写权限
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false   # 出包不发中途取消，避免半个 Release
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+
+      # 签名材料：从 secrets 还原，用完 runner 就销毁。
+      # 路径必须与 build.gradle.kts 的 rootProject.file("key.properties") 对齐：
+      #   key.properties 在 apps/app/android/，storeFile 是相对 android/app/ 的路径。
+      - name: Restore keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [ -n "$KEYSTORE_B64" ] || { echo "没有配 ANDROID_KEYSTORE_BASE64"; exit 1; }
+          [ -n "$STORE_PASSWORD" ] || { echo "没有配 ANDROID_STORE_PASSWORD"; exit 1; }
+          [ -n "$KEY_ALIAS" ] || { echo "没有配 ANDROID_KEY_ALIAS"; exit 1; }
+          mkdir -p apps/app/android/keystore
+          printf '%s' "$KEYSTORE_B64" | base64 -d > apps/app/android/keystore/storynook-release.jks
+          cat > apps/app/android/key.properties <<EOF
+          storeFile=keystore/storynook-release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=${KEY_PASSWORD:-$STORE_PASSWORD}
+          EOF
+          chmod 600 apps/app/android/keystore/storynook-release.jks apps/app/android/key.properties
+          echo "keystore 已还原（$(stat -c%s apps/app/android/keystore/storynook-release.jks) 字节）"
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: apps/app
+
+      # 复用仓库里那条脚本：版号检查、flutter test、build、签名校验、
+      # 基址校验、归档 sha256 全在里面。CI 与本地走同一条路径，不会漂移。
+      - name: Build signed APK
+        run: ./tool/build-release-apk.sh
+        working-directory: apps/app
+        env:
+          API_BASE_URL: https://api-story.xirizhi.cn
+
+      - name: Read version
+        id: ver
+        run: |
+          set -euo pipefail
+          v=$(grep -E '^version:' apps/app/pubspec.yaml | sed -E 's/^version: *([0-9.]+)\+([0-9]+).*/\1/')
+          echo "name=$v" >> "$GITHUB_OUTPUT"
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          echo "版本 $v"
+
+      # 签名指纹进 summary，便于与 ~/Documents/story-keystore/README.md 核对。
+      - name: Show signature
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          APKSIGNER=$(ls "$SDK"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          APK="releases/storynook-${{ steps.ver.outputs.name }}.apk"
+          {
+            echo "### APK 签名"
+            echo '```'
+            "$APKSIGNER" verify --print-certs "$APK"
+            echo '```'
+            echo "### sha256"
+            echo '```'
+            cat "$APK.sha256"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storynook-${{ steps.ver.outputs.name }}
+          path: |
+            releases/storynook-${{ steps.ver.outputs.name }}.apk
+            releases/storynook-${{ steps.ver.outputs.name }}.apk.sha256
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch' && inputs.release)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.ver.outputs.tag }}
+          VER: ${{ steps.ver.outputs.name }}
+        run: |
+          set -euo pipefail
+          APK="releases/storynook-$VER.apk"
+          [ -f "$APK" ] || { echo "没有 $APK"; exit 1; }
+          # 同 tag 已存在就不再建（重复推送同版本号时不该炸）
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG 已存在，改为上传附件（同名会覆盖）"
+            gh release upload "$TAG" "$APK" "$APK.sha256" --clobber
+          else
+            gh release create "$TAG" "$APK" "$APK.sha256" \
+              --title "小故事铺 $VER" \
+              --notes "Flutter 客户端 $VER（versionCode 见 pubspec.yaml）。签名指纹见 Actions summary。"
+          fi
