@@ -7,7 +7,7 @@
 
 单库 monorepo，**三端都在 `apps/`**：服务端、运营后台、安卓客户端。1.0 静态站**已于 2026-11-14 彻底删除**
 （决策 D9），源码、根 Dockerfile、.dockerignore、四个契约测试全没了；**Flutter 客户端源码已于 2026-11-14
-从 git 历史（`aacce1b`）恢复到 `apps/app`**，版本 0.1.2+3，63 个文件。
+从 git 历史（`aacce1b`）恢复到 `apps/app`**，现版本 0.1.3+4，63 个文件。
 
 ## 怎么跑
 
@@ -19,11 +19,16 @@
 # 生产状态（只读）
 ./scripts/prod-deploy.sh status
 
-# 安卓客户端（需要 Flutter SDK + Android SDK；本机当前没装）
+# 安卓客户端（本机没装 Flutter/SDK；正式出包走 CI，见下）
 cd apps/app && flutter pub get && flutter test        # 58 个用例
 FLUTTER_CHECK=1 ./scripts/preflight.sh                 # 把 App 用例并进预检（默认关）
-./apps/app/tool/build-release-apk.sh                   # 出正式签名包（见 apps/app/README.md）
+bash apps/app/tool/build-release-apk.sh                # 本机出包（要 Flutter + SDK + keystore）
 ```
+
+**APK 出包在 CI**：`.github/workflows/android.yml`，推 `apps/app/**` 到 main 或手动触发。
+Flutter 3.47.9 构建 → 从 secrets 还原 keystore → `tool/build-release-apk.sh`（同一条脚本，
+CI 与本地不漂移）→ 按 versionName 建 GitHub Release。签名材料见
+`~/Documents/story-keystore/`（唯一副本，进 restic 备份）。
 
 ## 技术栈
 
@@ -38,7 +43,7 @@ FLUTTER_CHECK=1 ./scripts/preflight.sh                 # 把 App 用例并进预
 ```
 apps/server      服务端（136 测试）
 apps/admin       运营后台（63 测试，镜像内 nginx）
-apps/app         Flutter 客户端（58 测试；签名材料与 APK 不入库）
+apps/app         Flutter 客户端（58 测试；签名材料与 APK 不入库，出包走 CI）
 apps/app/tool/build-release-apk.sh  正式签名出包（自检版号/签名/基址）
 apps/server/scripts  迁移执行器、开发种子、端到端冒烟
 scripts/         宿主侧脚本（preflight 预检、prod-deploy 上线一条龙）
@@ -74,15 +79,19 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
 
 ## 当前状态（2026-11-14）
 
-- 唯一分支 `main`，唯一版本 **0.1.2**，唯一 tag `v0.1.2`，唯一 GitHub Release。
+- 唯一分支 `main`。服务端/后台版本 0.1.2；客户端 **0.1.3+4**（tag `v0.1.3`，2026-11-23 CI 出包）。
 - 生产在跑：**服务端 / 后台两个**域名 200，容器 `story-server-prod` / `story-admin-prod` healthy，
   TLS 到 2027-02-09。1.0 已彻底删除（D9），`story.xirizhi.cn` 返回 404 是正常的。
 - **三端源码都在仓库**：`apps/server`、`apps/admin`、`apps/app`（Flutter，2026-11-14 恢复）。
-  **APK 与 NAS 无关**：构建在本机（要 Flutter SDK，当前没装）、发布走 GitHub Releases 附件、
+  **APK 与 NAS 无关**：出包在 CI（`.github/workflows/android.yml`）、发布走 GitHub Releases 附件、
   功能测试在本机 arch 装包（waydroid）。NAS 只跑生产服务端 + 后台。
-  ⚠️ 签名材料（`apps/app/android/key.properties` + `android/keystore/`）**已丢失**：本机全盘、
-  NAS 备份区、git 历史、本机 restic 快照（11-22）四处都没有。只影响发新 APK 升级包
-  （Android 要求同签名），服务端与 NAS 部署不受影响。**发版前必须先确认是否另有离线副本**。
+  **签名材料**：`~/Documents/story-keystore/`（唯一副本，进 restic 日备）+ GitHub secrets
+  （`ANDROID_KEYSTORE_BASE64` / `STORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`）。
+  证书 `CN=StoryNook`，SHA-256 `1D:06:C9:EA…:E9:20`，有效期至 2056-11-15。
+  旧的（`69:39:67:FA…:73:87:F`，签 0.1.2 用的）已彻底丢失；2026-11-23 换新，当时无老用户，
+  所以同包名重发没有兼容负担。**从 0.1.3 起同一 keystore 可持续升级。**
+  keystore 路径易错：Gradle 的 `file(storeFile)` 与脚本的检查都以 `android/app/` 为基准，
+  所以文件必须落 `apps/app/android/app/keystore/`，不是 `android/keystore/`。
 - 待办：管理员手机号换真号、APK 真机验收、接真实短信通道。
 - 已知遗留：`story-dev-postgres` 上只剩 `story_dev` / `story_test` / `story_e2e_seed` 三个库，演练库已清完
   （`story_e2e_seed` 是 `preflight --e2e` 的种子库，**别删**）。
