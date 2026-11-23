@@ -31,6 +31,16 @@ pre {
   padding: 3mm 4mm;
   margin: 3mm 0 4mm 0;
 }
+tr { page-break-inside: avoid; }
+thead { display: table-header-group; }
+p, li, td, th { text-align: left !important; }
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 4mm auto 2mm auto;
+}
+figure { margin: 0; }
 pre code {
   background: transparent;
   color: #24323d;

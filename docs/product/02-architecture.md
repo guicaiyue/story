@@ -267,7 +267,8 @@ model AuditLog {
 | GET | `/api/home` | 首页聚合：今晚推荐、场景歌单、继续听（需登录） |
 | POST | `/api/auth/guest` | 游客登录，返回 token |
 | POST | `/api/auth/login` | 手机号 + 验证码（MVP 用固定验证码） |
-| GET/PUT | `/api/me` | 账号信息 |
+| GET/PUT | `/api/me` | 账号信息（PUT 只改昵称） |
+| POST | `/api/me/bind-phone` | 给当前游客账号绑手机号；已被占用返回 409，不做游客数据合并（D6 未定） |
 | GET/POST/PATCH | `/api/children` | 儿童档案 |
 | PUT | `/api/progress/:storyId` | 上报进度 |
 | POST/DELETE | `/api/favorites/:storyId` | 收藏 |

@@ -758,3 +758,43 @@ story_test
 （卡 `c-mwbtrel7-16q3kr`）。同样改用文件编辑工具完成，未绕过闸门。
 两轮下来可确认：闸门对**文本里出现 SQL 关键字**也会拦，即使操作对象只是 markdown。
 
+
+---
+
+## 30. docker 构建文件收敛到仓库根（2026-11-18）
+
+起因：Dockerfile 埋在 `apps/server/`、`apps/admin/` 里，而构建上下文一直是**仓库根**
+（monorepo 要 `pnpm-workspace.yaml` + lockfile），每次都得隔着一层目录去找；
+`docker/nginx/story-prod.conf` 又多套一级目录。全部收敛到根，`apps/*` 下不再有 docker 文件。
+
+| 旧 | 新 |
+| --- | --- |
+| `apps/server/Dockerfile` | `Dockerfile.server` |
+| `apps/server/Dockerfile.dockerignore` | `Dockerfile.server.dockerignore` |
+| `apps/admin/Dockerfile` | `Dockerfile.admin` |
+| `apps/admin/Dockerfile.dockerignore` | `Dockerfile.admin.dockerignore` |
+| `docker/nginx/story-prod.conf` | `nginx-front.conf`（`docker/` 目录已删） |
+
+关键约束没变、但换了名字：BuildKit 只认 **`<Dockerfile>.dockerignore`**（与 Dockerfile 同名同目录），
+所以白名单现在叫 `Dockerfile.server.dockerignore` / `Dockerfile.admin.dockerignore`。
+**根 `.dockerignore` 仍然不能造**——它不匹配任何一个 Dockerfile，白名单会静默失效。
+
+同步改动：`scripts/prod-deploy.sh build` 的两条 `-f` 路径、`docker-compose.prod.yml`
+（nginx 挂载 `./nginx-front.conf`、去掉「compose build server」这条早就无效的提示，构建入口只留 prod-deploy）、
+`README.md`（新增根目录 docker 文件表）、`12-prod-deploy-runbook.md`、`AGENTS.md` 硬约束 1。
+
+### 30.1 验证
+
+- `docker compose --env-file .env.prod.example -f docker-compose.prod.yml config --quiet` 通过；
+  `--profile nginx-front` 解析出的挂载是 `/…/story/nginx-front.conf → /etc/nginx/conf.d/default.conf`
+- `docker build -f Dockerfile.server -t story-server:m4-check .` **成功**（全新构建，非缓存：
+  `build OK: dist + musl query engine present`，29.8s）
+- 上下文白名单确认生效：临时用 `Dockerfile.probe` + 同名 `.dockerignore`（`**` + `!README.md`）
+  实测只传了 5.20kB
+
+### 30.2 顺带修掉的既有故障
+
+`docker build -f Dockerfile.admin` 首次失败：`COPY apps/admin/public apps/admin/public` →
+`"/apps/admin/public": not found`。该目录**从未进过 git**（git 不跟踪空目录），
+11-13 那次构建靠的是本地残留，之后被清掉了，所以后台镜像其实已经构建不出来。
+补 `apps/admin/public/.gitkeep` 并在 Dockerfile 里写明为什么这一行要求它存在。

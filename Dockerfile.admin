@@ -3,19 +3,23 @@
 # 多阶段：base(pnpm) → build(vite build + tsc) → runtime(nginx:alpine，只放静态产物)。
 # 后台是纯静态站点，运行层不需要 node。
 #
-# 构建上下文是**仓库根目录**（monorepo），用同目录的 Dockerfile.dockerignore 隔离，
-# 避免把 apps/server/.audio-cache（537MB）、node_modules 等传进 daemon。
+# 构建上下文是**仓库根目录**（monorepo），本文件也在仓库根，用同名白名单
+# Dockerfile.admin.dockerignore 隔离，避免把 apps/server/.audio-cache（537MB）、
+# node_modules 等传进 daemon。
+#
+# 构建（上下文必须是仓库根）：
+#   docker build -f Dockerfile.admin -t story-admin:m4 .
 
 ARG NODE_IMAGE=node:22-alpine
 ARG NGINX_IMAGE=nginx:alpine
-# registry 默认官方 npmjs（理由见 apps/server/Dockerfile 同名 ARG）。
+# registry 默认官方 npmjs（理由见 Dockerfile.server 同名 ARG）。
 ARG NPM_REGISTRY=https://registry.npmjs.org
 ARG PNPM_VERSION=11.20.0
 
 # ---------------------------------------------------------------------------
 # base
 #
-# pnpm 用 corepack 装（见 apps/server/Dockerfile 同名说明）：
+# pnpm 用 corepack 装（见 Dockerfile.server 同名说明）：
 # `npm install -g pnpm` 要经 registry 取 pnpm，而本机 npmmirror 从容器里不可达。
 # ---------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS base
@@ -40,7 +44,7 @@ ARG NPM_REGISTRY
 WORKDIR /app
 # registry 与 verify-deps 写进项目 .npmrc（`pnpm run` 前的隐式依赖检查 install
 # 不读命令行 --registry）。node-linker 必须走命令行 --config.*：pnpm 11 不从
-# .npmrc 读 node-linker（详见 apps/server/Dockerfile 同名说明）。
+# .npmrc 读 node-linker（详见 Dockerfile.server 同名说明）。
 RUN printf 'registry=%s\nverify-deps-before-run=false\nfetch-timeout=600000\nfetch-retries=5\nfetch-retry-maxtimeout=120000\n' "${NPM_REGISTRY}" > /app/.npmrc
 COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/admin/package.json apps/admin/
@@ -51,6 +55,8 @@ RUN --mount=type=cache,target=/pnpm-store,id=story-pnpm-store \
       --filter @story/admin
 COPY apps/admin/index.html apps/admin/tsconfig.json apps/admin/vite.config.ts apps/admin/
 COPY apps/admin/src apps/admin/src
+# public/ 是 vite 的静态资源目录，可能只有 .gitkeep（git 不跟踪空目录），
+# 但这一行要求它存在——2026-11-18 验证时它缺失过一次，构建直接 "not found"。
 COPY apps/admin/public apps/admin/public
 
 # VITE_API_BASE 留空 = 同源，前端请求 /api/*，由下面 nginx 反代到 server。
