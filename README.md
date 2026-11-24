@@ -43,6 +43,15 @@
 **镜像只在 CI 构建**，部署机上不跑 `docker build`。回滚 = 改 `.env` 里的
 `STORY_TAG` 回上一个 sha，再 `pull` + `up -d`。
 
+**`deploy` 这一步的绿就是真的上线了**：NAS 那边失败时回的是「没上线：…」，而中台的
+失败前缀只认「没跑成」，所以「没上线」会被记成 done。`ci.yml` 因此不看 `state` 一个字段，
+还看摘要内容——只有「上线了 / 没事可做」才 `exit 0`，其余（含空）直接红。以前只看
+`state`，结果是 **CI 绿、生产没上线**（2026-11-18 的 run #236 就是这样）。
+
+**验收看两处**：容器 `story-server-prod` / `story-admin-prod` 都 healthy；`api-story.xirizhi.cn/api/health`
+的 `data.version` 等于 `apps/server/package.json` 的版本（它从 package.json 读，不是写死的，
+改版本号忘了同步会被 `tests/content.test.ts` 拦住）。
+
 ### 运维命令
 
 ```bash
