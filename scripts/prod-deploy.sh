@@ -146,7 +146,7 @@ cmd_up() {
 }
 
 cmd_smoke() {
-  local base="https://$API_HOST" code tok
+  local base="https://$API_HOST" tok admin_user admin_pass payload
   say "健康"
   curl -s --max-time 15 "$base/api/health"; echo
   say "读路径"
@@ -155,12 +155,15 @@ cmd_smoke() {
   printf 'admin-ui   %s\n' "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$ADMIN_HOST/")"
   printf 'admin-api  %s\n' "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$ADMIN_HOST/api/health")"
   say "后台登录 + 后台接口"
-  code=$(grep -E '^PROD_FIXED_SMS_CODE=' "$REPO/.env.prod" | cut -d= -f2-)
+  admin_user="${ADMIN_USERNAME:-$(grep -E '^PROD_ADMIN_USERNAME=' "$REPO/.env.prod" | cut -d= -f2- || true)}"
+  admin_pass="${ADMIN_PASSWORD:-$(grep -E '^PROD_ADMIN_PASSWORD=' "$REPO/.env.prod" | cut -d= -f2- || true)}"
+  [[ -n "$admin_user" && -n "$admin_pass" ]] || die "后台登录失败：.env.prod 里没有 PROD_ADMIN_USERNAME / PROD_ADMIN_PASSWORD（或设 ADMIN_USERNAME / ADMIN_PASSWORD）"
+  payload=$(python3 -c 'import json,sys; print(json.dumps({"username": sys.argv[1], "password": sys.argv[2]}))' "$admin_user" "$admin_pass")
   tok=$(curl -s --max-time 15 -X POST "$base/api/admin/auth/login" \
         -H 'content-type: application/json' \
-        -d "{\"phone\":\"${ADMIN_PHONE:-13800138000}\",\"code\":\"$code\"}" \
+        -d "$payload" \
         | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("data",{}).get("token",""))')
-  [[ -n "$tok" ]] || die "后台登录失败（检查 ADMIN_PHONE / PROD_FIXED_SMS_CODE / 管理员是否 active）"
+  [[ -n "$tok" ]] || die "后台登录失败（检查 PROD_ADMIN_USERNAME / PROD_ADMIN_PASSWORD / 管理员是否 active）"
   echo "login OK"
   for p in /api/admin/dashboard /api/admin/stories /api/admin/categories /api/admin/analytics/overview; do
     printf '%-34s %s\n' "$p" "$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -H "authorization: Bearer $tok" "$base$p")"

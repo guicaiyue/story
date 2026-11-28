@@ -173,6 +173,11 @@ C 端 `/api/auth/login` 的 `LoginBody(phone, code)` 保持不动）：
 
 - **上线顺序风险**：发布后老管理员还没有口令，会进不了后台。缓解：发布窗口里先用
   `set-admin-password.mjs` 给首个管理员设好账号密码，再切流量；旧镜像仍能跑（新列是追加）。
+- **发布脚本状态**：`scripts/prod-deploy.sh smoke` 已改成账号密码（读 `.env.prod` 的
+  `PROD_ADMIN_USERNAME` / `PROD_ADMIN_PASSWORD`）。`prod-deploy.sh admin` 与
+  `docs/product/21-prod-admin-seed.sql` 仍是旧的手机号 seed，属于生产写路径；
+  本轮按「改发布链路先问」没有动它们，发布/运维轮要在批准后补首个管理员的
+  `username/password_hash`（可复用 `set-admin-password.mjs` 的哈希逻辑），再跑生产 smoke。
 - **没有限流**：密码登录理论上可被暴力尝试。这一轮先不做限流（内部后台、单 IP 暴露面小），
   在 plan 里留成后续项；如果要求这一轮就加，需要另开一条。
 - **手机号仍出现在家庭档案页**（只读）。见 3.5 的说明。

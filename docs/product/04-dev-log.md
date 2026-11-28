@@ -829,3 +829,5 @@ App 未动、本机无 Flutter SDK，不需要 CI 的 `android.yml`。
 
 **上线注意**：迁移前的老管理员没有口令，发布窗口里要先用 `set-admin-password.mjs`
 给首个管理员设账号密码，否则新后台没人能进。旧镜像仍可运行（新列是追加）。
+生产 smoke 已改成账号密码（`.env.prod` 的 `PROD_ADMIN_USERNAME` / `PROD_ADMIN_PASSWORD`）；
+`prod-deploy.sh admin` 仍是手机号 seed，属于生产写路径，留给发布/运维轮按批准改。
