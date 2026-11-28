@@ -8,8 +8,8 @@
 > **基线（改前实测，`./scripts/gate.sh`）**：服务端类型检查 PASS、后台类型检查 PASS、
 > 后台单测 **63 passed**、服务端单测 **146 passed**（`story-dev-postgres` 已起）。
 > **实现后实测**：后台单测 **66 passed**、服务端单测 **159 passed**，两端类型检查 0 错，
-> `pnpm --filter @story/admin build` 通过。技能与 AGENTS 里写的「服务端 136 用例」已过时，
-> 以 gate 实际输出为准。App 用例未跑：本机没有 Flutter SDK，且本轮不动 `apps/app/**`。
+> `pnpm --filter @story/admin build` 通过。技能里写的「服务端 136 用例」已过时（AGENTS / README
+> 已按实测更新），以 gate 实际输出为准。App 用例未跑：本机没有 Flutter SDK，且本轮不动 `apps/app/**`。
 
 ## 1. 用户目标
 
