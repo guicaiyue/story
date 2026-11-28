@@ -4,7 +4,7 @@
 #   ./scripts/gate.sh              # 两端类型检查 + 后台单测；开发库在的时候顺带跑服务端用例
 #   FLUTTER_CHECK=1 ./scripts/gate.sh   # 再并进 App 的 58 个用例（要 Flutter SDK，本机默认没有）
 #
-# 为什么有它：CI 的 check job 只跑一半（服务端 136 用例要 Postgres，CI 里没有库），
+# 为什么有它：CI 的 check job 只跑一半（服务端全量用例要 Postgres，CI 里没有库），
 # 而 preflight.sh 必须在开发容器里跑。两条命令各说一半，agent 每轮都要猜。
 # 这里把「本机能跑的都跑一遍」固定下来，缺什么就显式 SKIP 并写清怎么补——
 # **SKIP 不是通过**：检查轮看到 SKIP 要问一句「这条改动需不需要那一条」。
@@ -54,7 +54,7 @@ if have pnpm; then
   fi
 fi
 
-# ── ③ 服务端单测（136）：要开发库 story-dev-postgres + apps/server/.env 里的 TEST_DATABASE_URL ──
+# ── ③ 服务端单测（全量）：要开发库 story-dev-postgres + apps/server/.env 里的 TEST_DATABASE_URL ──
 DEV_DB_UP=0
 if have docker && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'story-dev-postgres'; then
   DEV_DB_UP=1
@@ -86,6 +86,6 @@ fi
 
 echo
 echo "———— 汇总 ————"
-echo "服务端 136 用例的完整门禁是 ./scripts/preflight.sh（必须在开发容器里跑）"
+echo "服务端全量用例的完整门禁是 ./scripts/preflight.sh（必须在开发容器里跑）"
 [ "$FAILED" = "0" ] && echo "结论：本机能跑的都过了（SKIP 项要自己判需不需要）" || echo "结论：有失败项，先修再交检查"
 exit "$FAILED"

@@ -11,7 +11,7 @@ export type ApiEnvelope<T> = { ok: true; data: T } | { ok: false; error: { code:
 const TOKEN_KEY = 'story_admin_token';
 const ACCOUNT_KEY = 'story_admin_account';
 
-export type AdminAccount = { accountId: string; role: string; nickname?: string; phone?: string };
+export type AdminAccount = { accountId: string; role: string; username?: string; nickname?: string };
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -162,6 +162,8 @@ export type BannerItem = {
 export type AccountItem = {
   id: string;
   phone: string | null;
+  /** 运营后台登录名；家长/游客为 null。 */
+  username: string | null;
   nickname: string;
   role: string;
   status: string;
@@ -219,10 +221,11 @@ export type StoryContentResult = {
 
 export const api = {
   // --- 认证（02-architecture §4.2）---
-  adminLogin: (body: { phone: string; code: string; nickname?: string }) =>
-    request<{ token: string; accountId: string; role: string }>('/api/admin/auth/login', { method: 'POST', body }),
-
-  sendCode: (phone: string) => request<{ sent: boolean; channel: string }>('/api/auth/send-code', { method: 'POST', body: { phone } }),
+  adminLogin: (body: { username: string; password: string }) =>
+    request<{ token: string; accountId: string; role: string; username: string }>('/api/admin/auth/login', {
+      method: 'POST',
+      body,
+    }),
 
   me: () => request<{ id: string; phone: string | null; nickname: string; role: string }>('/api/me'),
 
@@ -286,12 +289,12 @@ export const api = {
   accounts: (query: { page: number; pageSize: number; role?: string }) =>
     request<{ items: AccountItem[]; total: number; page: number; pageSize: number }>('/api/admin/accounts', { query }),
 
-  /** M2.1 项目 4：新增管理员（仅 admin）。 */
-  createAccount: (body: { phone: string; nickname?: string; role?: string }) =>
+  /** M2.1 项目 4：新增管理员（仅 admin）。账号 + 初始密码是登录凭证。 */
+  createAccount: (body: { username: string; password: string; nickname?: string; role?: string }) =>
     request<AccountItem>('/api/admin/accounts', { method: 'POST', body }),
 
-  /** M2.1 项目 4：改角色 / 停用 / 改昵称（仅 admin）。 */
-  updateAccount: (id: string, body: { nickname?: string; role?: string; status?: string }) =>
+  /** M2.1 项目 4：改角色 / 停用 / 改昵称 / 补登录名或重置密码（仅 admin）。 */
+  updateAccount: (id: string, body: { nickname?: string; role?: string; status?: string; username?: string; password?: string }) =>
     request<AccountItem>(`/api/admin/accounts/${id}`, { method: 'PATCH', body }),
 
   audit: (query: { page: number; pageSize: number }) => request<{ items: AuditItem[]; total: number; page: number; pageSize: number }>('/api/admin/audit', { query }),

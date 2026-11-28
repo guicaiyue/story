@@ -91,6 +91,10 @@ model Account {
   role      String   @default("parent") // parent | admin | editor
   /// active | disabled —— 停用后不能登录，且既有 token 在 admin 路由上被拒。
   status    String   @default("active")
+  /// 运营后台登录名；C 端家长/游客为 null。Postgres 唯一索引允许多个 NULL。
+  username     String? @unique
+  /// 运营后台密码哈希（scrypt）；C 端账号为 null。绝不存明文。
+  passwordHash String? @map("password_hash")
   createdAt DateTime @default(now()) @map("created_at")
 
   family   Family?

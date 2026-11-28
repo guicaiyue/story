@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Db } from '../db.js';
 import { ok, AppError, StoryStatus, AgeBand } from '../contract.js';
 import { getDashboard, getAnalyticsOverview, getAnalyticsTop, getAnalyticsTrend, getAnalyticsCategories, updateStoryContent } from '../services/admin-service.js';
+import { hashPassword } from '../services/password.js';
 
 const ListQuery = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -57,8 +58,17 @@ const BannerCreate = z.object({
 });
 
 /** 管理员管理（M2.1 项目 4）。 */
+const UsernameSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9._-]{3,32}$/, '账号需为 3–32 位字母、数字、点、下划线或连字符');
+
+/** 口令只在前端/脚本侧出现一次，进库前一定哈希；上限防超大请求。 */
+const PasswordSchema = z.string().min(8, '密码至少 8 位').max(128, '密码最多 128 位');
+
 const AccountCreate = z.object({
-  phone: z.string().trim().regex(/^1\d{10}$/, '手机号格式不正确'),
+  username: UsernameSchema,
+  password: PasswordSchema,
   nickname: z.string().trim().max(50).default(''),
   role: z.enum(['admin', 'editor']).default('editor'),
 });
@@ -67,6 +77,9 @@ const AccountPatch = z.object({
   nickname: z.string().trim().max(50).optional(),
   role: z.enum(['admin', 'editor']).optional(),
   status: z.enum(['active', 'disabled']).optional(),
+  /** 已有管理员补登录名/重置密码用；两者都可选。 */
+  username: UsernameSchema.optional(),
+  password: PasswordSchema.optional(),
 });
 
 export type Role = 'parent' | 'admin' | 'editor';
@@ -329,7 +342,7 @@ export function registerAdminRoutes(
       db.account.count({ where }),
       db.account.findMany({
         where,
-        select: { id: true, phone: true, nickname: true, role: true, status: true, createdAt: true, _count: { select: { children: true } } },
+        select: { id: true, phone: true, username: true, nickname: true, role: true, status: true, createdAt: true, _count: { select: { children: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
@@ -341,39 +354,46 @@ export function registerAdminRoutes(
   /**
    * 新增管理员（M2.1 项目 4）。仅 admin。
    *
-   * 用手机号作为身份锚点（与登录一致），账号在对方首次验证码登录时直接可用。
-   * 手机号全局唯一，重复即 409。
+   * 后台登录已改成账号 + 密码，所以创建管理员时必须同时给出登录名与初始口令；
+   * 口令只在这里出现一次，进库前哈希。账号名全局唯一，重复即 409。
    */
   app.post('/api/admin/accounts', async (req) => {
     const actor = await requireRole(req, adminOnly);
     const body = AccountCreate.parse(req.body ?? {});
 
-    const existing = await db.account.findUnique({ where: { phone: body.phone }, select: { id: true } });
-    if (existing) throw AppError.conflict('该手机号已存在账号');
+    const existing = await db.account.findUnique({ where: { username: body.username }, select: { id: true } });
+    if (existing) throw AppError.conflict('该账号名已存在');
 
+    const passwordHash = await hashPassword(body.password);
     const created = await db.account.create({
-      data: { phone: body.phone, nickname: body.nickname, role: body.role },
-      select: { id: true, phone: true, nickname: true, role: true, status: true, createdAt: true },
+      data: { username: body.username, passwordHash, nickname: body.nickname, role: body.role },
+      select: { id: true, username: true, nickname: true, role: true, status: true, createdAt: true },
     });
     await db.auditLog.create({
-      data: { id: auditId(), actorId: actor.sub, action: 'account.create', target: created.id, detail: { phone: body.phone, role: body.role } },
+      data: { id: auditId(), actorId: actor.sub, action: 'account.create', target: created.id, detail: { username: body.username, role: body.role } },
     });
     return ok(created);
   });
 
   /**
-   * 改角色 / 停用 / 改昵称（M2.1 项目 4）。仅 admin。
+   * 改角色 / 停用 / 改昵称 / 设置登录名或重置密码（M2.1 项目 4）。仅 admin。
    *
    * 两条自保护规则（否则会把后台锁死）：
    *   1. 不能改自己的角色或停用自己 —— 一次误操作就再没人能进后台；
    *   2. 不能让「最后一个可用 admin」消失（降级或停用都算）。
+   *
+   * username/password 是后台登录改成账号密码后补的：老管理员用它补登录名、
+   * 忘记口令时用它重置。auditLog 只记字段名，绝不记口令。
    */
   app.patch('/api/admin/accounts/:id', async (req) => {
     const actor = await requireRole(req, adminOnly);
     const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
     const body = AccountPatch.parse(req.body ?? {});
 
-    const target = await db.account.findUnique({ where: { id }, select: { id: true, role: true, status: true } });
+    const target = await db.account.findUnique({
+      where: { id },
+      select: { id: true, role: true, status: true, username: true },
+    });
     if (!target) throw AppError.notFound('账号不存在');
 
     const nextRole = body.role ?? target.role;
@@ -388,10 +408,22 @@ export function registerAdminRoutes(
       if (remaining === 0) throw AppError.badRequest('系统必须保留至少一个可用管理员');
     }
 
+    if (body.username !== undefined && body.username !== target.username) {
+      const existing = await db.account.findUnique({ where: { username: body.username }, select: { id: true } });
+      if (existing) throw AppError.conflict('该账号名已存在');
+    }
+
+    const passwordHash = body.password === undefined ? undefined : await hashPassword(body.password);
     const updated = await db.account.update({
       where: { id },
-      data: { ...(body.nickname === undefined ? {} : { nickname: body.nickname }), role: nextRole, status: nextStatus },
-      select: { id: true, phone: true, nickname: true, role: true, status: true },
+      data: {
+        ...(body.nickname === undefined ? {} : { nickname: body.nickname }),
+        ...(body.username === undefined ? {} : { username: body.username }),
+        ...(passwordHash === undefined ? {} : { passwordHash }),
+        role: nextRole,
+        status: nextStatus,
+      },
+      select: { id: true, username: true, nickname: true, role: true, status: true },
     });
 
     const changed = Object.keys(body);

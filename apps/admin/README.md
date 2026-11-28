@@ -39,23 +39,26 @@ pnpm dev
 
 ### 登录账号（dev）
 
-| 角色 | 手机号 | 验证码 |
-| --- | --- | --- |
-| 超级管理员 | `13900000001` | `FIXED_SMS_CODE`（默认 `123456`） |
-| 编辑 | `13900000002` | 同上 |
+`seed-dev-admin.mjs` 会种两个后台账号（重跑 seed 后生效）：
 
-M1 使用固定验证码，**不发真实短信**（03-decisions D4）。
-普通家长账号（如 `13800000001`）登录后台会得到 **403 该账号无管理权限**。
+| 角色 | 账号 | 初始密码 |
+| --- | --- | --- |
+| 超级管理员 | `admin` | `dev-admin-password`（可用 `SEED_ADMIN_PASSWORD` 覆盖） |
+| 编辑 | `editor` | `dev-editor-password`（可用 `SEED_EDITOR_PASSWORD` 覆盖） |
+
+后台登录只收账号 + 密码；web 端不发短信、不出现验证码。
+App 端仍是手机号 + 固定验证码（03-decisions D4），两边互不影响。
+普通家长账号没有后台登录名，登录后台会得到 **403 该账号无管理权限**。
 
 ## 测试
 
 ```bash
-pnpm test        # 46 个用例（vitest + testing-library）
+pnpm test        # 66 个用例（vitest + testing-library）
 pnpm typecheck   # tsc
 pnpm build       # 产出 dist/
 ```
 
-服务端另有 66 个用例（含后台接口与一个时区回归用例）：
+服务端另有 159 个用例（含后台接口、密码哈希与一个时区回归用例）：
 
 ```bash
 cd ../server && pnpm test

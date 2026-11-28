@@ -182,9 +182,9 @@ describe('家庭与儿童档案', () => {
 
   const accounts = {
     items: [
-      { id: 'acc_1', phone: '13900000001', nickname: '林知远', role: 'admin', createdAt: '2026-11-09T10:00:00.000Z', _count: { children: 1 } },
-      { id: 'acc_2', phone: '13800000001', nickname: '朵朵妈', role: 'parent', createdAt: '2026-11-09T09:00:00.000Z', _count: { children: 2 } },
-      { id: 'acc_3', phone: null, nickname: '游客', role: 'parent', createdAt: '2026-11-09T08:00:00.000Z', _count: { children: 0 } },
+      { id: 'acc_1', phone: '13900000001', username: 'admin-test', nickname: '林知远', role: 'admin', createdAt: '2026-11-09T10:00:00.000Z', _count: { children: 1 } },
+      { id: 'acc_2', phone: '13800000001', username: null, nickname: '朵朵妈', role: 'parent', createdAt: '2026-11-09T09:00:00.000Z', _count: { children: 2 } },
+      { id: 'acc_3', phone: null, username: null, nickname: '游客', role: 'parent', createdAt: '2026-11-09T08:00:00.000Z', _count: { children: 0 } },
     ],
     total: 3,
     page: 1,
@@ -365,7 +365,7 @@ describe('管理员与日志', () => {
    */
   const adminsOnly = {
     items: [
-      { id: 'acc_1', phone: '13900000001', nickname: '测试管理员', role: 'admin', status: 'active', createdAt: '2026-11-01T00:00:00.000Z', _count: { children: 0 } },
+      { id: 'acc_1', phone: '13900000001', username: 'admin-test', nickname: '测试管理员', role: 'admin', status: 'active', createdAt: '2026-11-01T00:00:00.000Z', _count: { children: 0 } },
     ],
     total: 1,
     page: 1,
@@ -374,7 +374,7 @@ describe('管理员与日志', () => {
 
   const editorsOnly = {
     items: [
-      { id: 'acc_2', phone: '13900000002', nickname: '小编', role: 'editor', status: 'disabled', createdAt: '2026-11-02T00:00:00.000Z', _count: { children: 0 } },
+      { id: 'acc_2', phone: '13900000002', username: 'editor-test', nickname: '小编', role: 'editor', status: 'disabled', createdAt: '2026-11-02T00:00:00.000Z', _count: { children: 0 } },
     ],
     total: 1,
     page: 1,
@@ -388,7 +388,7 @@ describe('管理员与日志', () => {
   function mockSystem(au: unknown = audit) {
     return mockFetchRoutes([
       ['/api/admin/accounts', (u, init) => {
-        if (init?.method === 'POST') return okJson({ id: 'acc_3', phone: '13900000003', nickname: '新同事', role: 'editor', status: 'active' });
+        if (init?.method === 'POST') return okJson({ id: 'acc_3', phone: null, username: 'new-colleague', nickname: '新同事', role: 'editor', status: 'active' });
         if (init?.method === 'PATCH') return okJson({ ...editorsOnly.items[0], status: 'active' });
         return u.includes('role=editor') ? okJson(editorsOnly) : okJson(adminsOnly);
       }],
@@ -421,6 +421,7 @@ describe('管理员与日志', () => {
 
     const table = within(await screen.findByTestId('admins-table'));
     expect(table.getByText('小编')).toBeInTheDocument();
+    expect(table.getByText('editor-test')).toBeInTheDocument();
     expect(table.getByText('可用')).toBeInTheDocument();
     expect(table.getByText('已停用')).toBeInTheDocument();
   });
@@ -454,7 +455,8 @@ describe('管理员与日志', () => {
     await screen.findByTestId('admins-table');
 
     await userEvent.click(screen.getByTestId('admin-create-open'));
-    await userEvent.type(await screen.findByTestId('admin-phone'), '13900000003');
+    await userEvent.type(await screen.findByTestId('admin-username'), 'new-colleague');
+    await userEvent.type(screen.getByTestId('admin-password'), 'initial-password');
     await userEvent.type(screen.getByTestId('admin-nickname'), '新同事');
     await userEvent.click(screen.getByRole('button', { name: '创 建' }));
 
@@ -462,7 +464,10 @@ describe('管理员与日志', () => {
       const call = callsOf(globalThis.fetch).find(([, i]) => i?.method === 'POST');
       expect(call).toBeTruthy();
       expect(call![0]).toContain('/api/admin/accounts');
-      expect(String(call![1]?.body)).toContain('13900000003');
+      const body = JSON.parse(String(call![1]?.body)) as Record<string, unknown>;
+      expect(body).toMatchObject({ username: 'new-colleague', password: 'initial-password', role: 'editor' });
+      // 后台登录已不用手机号，新增管理员的请求里也不该出现 phone。
+      expect(body).not.toHaveProperty('phone');
     });
   });
 

@@ -798,3 +798,34 @@ story_test
 `"/apps/admin/public": not found`。该目录**从未进过 git**（git 不跟踪空目录），
 11-13 那次构建靠的是本地残留，之后被清掉了，所以后台镜像其实已经构建不出来。
 补 `apps/admin/public/.gitkeep` 并在 Dockerfile 里写明为什么这一行要求它存在。
+
+---
+
+## 31. 后台登录改账号 + 密码（2026-11-28）
+
+用户要求：web 后台登录不要再出现手机号与验证码，改成账号 + 密码；
+App 端与 C 端游客/家长体系不动。批准卡 `306` 选了「加两列」。
+
+**数据层**：`app.account` 加 `username`（唯一、可空）与 `password_hash`（可空），
+迁移 `20261128120000_admin_password`。C 端账号两列为 NULL；Postgres 唯一索引允许多个 NULL。
+只对 `story_dev` / `story_test` 执行，生产库未写，生产迁移随上线流程再确认（D7）。
+
+**服务端**：`POST /api/admin/auth/login` 改 `{ username, password }`；scrypt（node:crypto，
+N=16384/r=8/p=1）哈希比对，未知账号/错密码统一 401「账号或密码错误」；role、`status=disabled`、
+auditLog 三条既有行为保留。`POST /api/admin/accounts` 改成账号 + 初始密码，
+`PATCH` 支持补登录名/重置密码（审计只记字段名，不记口令）。
+
+**前端**：登录页只剩账号/密码；会话里不再存手机号；系统页新增管理员用账号 + 初始密码，
+列表显示账号；家庭档案页的手机号列保留（C 端只读数据，不是登录输入框）。
+
+**新脚本**：`scripts/hash-password.mjs`（与 TS 侧同一格式，测试锁兼容）、
+`scripts/set-admin-password.mjs`（老管理员补凭证/重置；生产要 `--confirm-prod`）。
+
+**验证**：`./scripts/gate.sh` 全绿 —— 服务端 **159 passed**、后台 **66 passed**、两端类型检查 0 错；
+`pnpm --filter @story/admin build` 通过。dev 库 `migrate.mjs --status` 6/6、无 pending。
+curl 实测 `admin / dev-admin-password` 200，错密码 401，旧 phone/code body 400；
+`set-admin-password.mjs` 在 dev editor 上改回一次，两次登录都 200。
+App 未动、本机无 Flutter SDK，不需要 CI 的 `android.yml`。
+
+**上线注意**：迁移前的老管理员没有口令，发布窗口里要先用 `set-admin-password.mjs`
+给首个管理员设账号密码，否则新后台没人能进。旧镜像仍可运行（新列是追加）。

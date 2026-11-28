@@ -48,7 +48,7 @@ export function SystemPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form] = Form.useForm<{ phone: string; nickname?: string; role: string }>();
+  const [form] = Form.useForm<{ username: string; password: string; nickname?: string; role: string }>();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,7 +90,7 @@ export function SystemPage() {
   }, [loadAdmins]);
 
   const createAdmin = async () => {
-    let values: { phone: string; nickname?: string; role: string };
+    let values: { username: string; password: string; nickname?: string; role: string };
     try {
       values = await form.validateFields();
     } catch {
@@ -98,8 +98,13 @@ export function SystemPage() {
     }
     setCreating(true);
     try {
-      await api.createAccount({ phone: values.phone, nickname: values.nickname ?? '', role: values.role });
-      message.success('管理员已创建，对方用该手机号 + 验证码即可登录后台');
+      await api.createAccount({
+        username: values.username,
+        password: values.password,
+        nickname: values.nickname ?? '',
+        role: values.role,
+      });
+      message.success('管理员已创建，请把账号和初始密码交给对方');
       setCreateOpen(false);
       form.resetFields();
       await loadAdmins();
@@ -115,7 +120,7 @@ export function SystemPage() {
     setBusyId(row.id);
     try {
       await api.updateAccount(row.id, { status: row.status === 'active' ? 'disabled' : 'active' });
-      message.success(row.status === 'active' ? `已停用「${row.nickname || row.phone}」` : '已重新启用');
+      message.success(row.status === 'active' ? `已停用「${row.nickname || row.username || row.id}」` : '已重新启用');
       await loadAdmins();
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败');
@@ -140,7 +145,7 @@ export function SystemPage() {
 
   const adminColumns: ColumnsType<AccountItem> = [
     { title: '昵称', dataIndex: 'nickname', render: (n: string) => n || <span style={{ color: 'var(--ink-3)' }}>未命名</span> },
-    { title: '手机号', dataIndex: 'phone', width: 140, render: (p: string | null) => p ?? '—' },
+    { title: '账号', dataIndex: 'username', width: 160, render: (u: string | null) => u ?? <span style={{ color: 'var(--ink-3)' }}>未设置</span> },
     {
       title: '角色',
       dataIndex: 'role',
@@ -242,7 +247,7 @@ export function SystemPage() {
             {account?.nickname ?? '—'}
           </div>
           <div className="stat-foot" style={{ marginTop: 4 }}>
-            角色：{ROLE_LABEL[account?.role ?? ''] ?? account?.role} · {account?.phone ?? ''}
+            角色：{ROLE_LABEL[account?.role ?? ''] ?? account?.role} · {account?.username ?? ''}
           </div>
           <div className="stat-foot">账号 ID：{account?.accountId}</div>
         </PaperCard>
@@ -310,14 +315,25 @@ export function SystemPage() {
       >
         <Form form={form} layout="vertical" initialValues={{ role: 'editor' }} preserve={false}>
           <Form.Item
-            name="phone"
-            label="手机号"
+            name="username"
+            label="账号"
             rules={[
-              { required: true, message: '请输入手机号' },
-              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
+              { required: true, message: '请输入账号' },
+              { pattern: /^[A-Za-z0-9._-]{3,32}$/, message: '账号需为 3–32 位字母、数字、点、下划线或连字符' },
             ]}
           >
-            <Input placeholder="对方用该手机号登录后台" data-testid="admin-phone" />
+            <Input placeholder="对方用该账号登录后台" data-testid="admin-username" />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="初始密码"
+            rules={[
+              { required: true, message: '请输入初始密码' },
+              { min: 8, message: '密码至少 8 位' },
+              { max: 128, message: '密码最多 128 位' },
+            ]}
+          >
+            <Input.Password placeholder="至少 8 位，请通过安全渠道交给对方" data-testid="admin-password" />
           </Form.Item>
           <Form.Item name="nickname" label="昵称">
             <Input placeholder="选填" data-testid="admin-nickname" />

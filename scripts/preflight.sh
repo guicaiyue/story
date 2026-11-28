@@ -110,7 +110,7 @@ if [ "$E2E" = "1" ]; then
     HAS_DB="$(docker exec story-dev-postgres psql -U storydev -d story_dev -tAc \
       "select 1 from pg_database where datname='$E2E_DB'" 2>/dev/null | tr -d ' ')"
     HAS_ADMIN="$(docker exec story-dev-postgres psql -U storydev -d "$E2E_DB" -tAc \
-      "select 1 from app.account where role='admin' limit 1" 2>/dev/null | tr -d ' ')"
+      "select 1 from app.account where role='admin' and username is not null and password_hash is not null limit 1" 2>/dev/null | tr -d ' ')"
     if [ "$HAS_DB" != "1" ]; then
       record "端到端冒烟" "SKIP" "没有 $E2E_DB 库（先跑一次种子或指定 E2E_DB）"
     else
@@ -131,9 +131,11 @@ if [ "$E2E" = "1" ]; then
       if [ "$OK" != "1" ]; then
         record "端到端冒烟" "FAIL" "服务没起来（看 docker logs $NAME）"
       else
-        # 有管理员才跑后台 4 步；没有就只验 App 段（12 步）
+        # 有带账号密码的管理员才跑后台 4 步；没有就只验 App 段（12 步）
         if [ "$HAS_ADMIN" = "1" ]; then
-          ADMIN_CODE="${FIXED_SMS_CODE:-87654321}" BASE="http://$NAME:3000" \
+          ADMIN_USERNAME="${E2E_ADMIN_USERNAME:-admin}" \
+            ADMIN_PASSWORD="${E2E_ADMIN_PASSWORD:-dev-admin-password}" \
+            BASE="http://$NAME:3000" \
             node apps/server/scripts/e2e-smoke.mjs >/tmp/preflight-e2e.log 2>&1
           RC=$?
           record "端到端冒烟" "$([ $RC = 0 ] && echo PASS || echo FAIL)" "$(grep -oE '合计 [0-9]+ 项，失败 [0-9]+' /tmp/preflight-e2e.log | tail -1)（见 /tmp/preflight-e2e.log）"

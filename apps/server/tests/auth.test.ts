@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { NoopSmsAdapter } from '../src/services/auth-service.js';
+import { hashPassword } from '../src/services/password.js';
 import { migrateTestDb, seedTestDb, testPrisma } from './helpers/test-db.js';
 
 const db = testPrisma();
@@ -121,27 +122,101 @@ describe('GET /api/me', () => {
   });
 });
 
-describe('POST /api/admin/auth/login', () => {
-  it('rejects a parent account', async () => {
+describe('POST /api/admin/auth/login（账号 + 密码）', () => {
+  const password = 'admin-test-password';
+  let passwordHash: string;
+
+  beforeAll(async () => {
+    passwordHash = await hashPassword(password);
+  });
+
+  it('rejects a parent account even with the right password', async () => {
+    await db.account.create({
+      data: { phone: '13800000003', nickname: '普通家长', role: 'parent', username: 'parent-login', passwordHash },
+    });
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/auth/login',
-      payload: { phone: '13800000003', code: '123456' },
+      payload: { username: 'parent-login', password },
     });
     expect(res.statusCode).toBe(403);
+    expect(res.json().error.message).toBe('该账号无管理权限');
   });
 
   it('issues an admin token for an admin account and writes an audit row', async () => {
-    await db.account.create({ data: { phone: '13900000001', nickname: '管理员', role: 'admin' } });
+    await db.account.create({
+      data: { phone: '13900000001', nickname: '管理员', role: 'admin', username: 'admin-login', passwordHash },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { username: 'admin-login', password },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.role).toBe('admin');
+    expect(res.json().data.username).toBe('admin-login');
+    expect(res.json().data.token).toBeTruthy();
+
+    const audits = await db.auditLog.findMany({ where: { action: 'login', actorId: res.json().data.accountId } });
+    expect(audits.length).toBeGreaterThan(0);
+  });
+
+  it('rejects a wrong password with a generic message and writes no audit row', async () => {
+    await db.account.create({
+      data: { username: 'wrong-password-admin', role: 'admin', passwordHash },
+    });
+    const before = await db.auditLog.count({ where: { action: 'login' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { username: 'wrong-password-admin', password: 'not-the-password' },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.message).toBe('账号或密码错误');
+    expect(res.json().data).toBeUndefined();
+    expect(await db.auditLog.count({ where: { action: 'login' } })).toBe(before);
+  });
+
+  it('does not leak whether an account exists (same message as a wrong password)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { username: 'no-such-admin', password: 'whatever-password' },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.message).toBe('账号或密码错误');
+  });
+
+  it('rejects a disabled admin with the correct password', async () => {
+    await db.account.create({
+      data: { username: 'disabled-admin', role: 'admin', status: 'disabled', passwordHash },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { username: 'disabled-admin', password },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error.message).toBe('该账号已被停用');
+  });
+
+  it('rejects a legacy admin that has no password hash', async () => {
+    await db.account.create({ data: { username: 'legacy-admin', role: 'admin' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { username: 'legacy-admin', password },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.message).toBe('账号或密码错误');
+  });
+
+  it('no longer accepts the old phone + code body', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/auth/login',
       payload: { phone: '13900000001', code: '123456' },
     });
-    expect(res.statusCode).toBe(200);
-    expect(res.json().data.role).toBe('admin');
-
-    const audits = await db.auditLog.findMany({ where: { action: 'login' } });
-    expect(audits.length).toBeGreaterThan(0);
+    expect(res.statusCode).toBe(400);
   });
 });

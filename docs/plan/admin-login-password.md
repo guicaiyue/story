@@ -1,12 +1,15 @@
 # 后台登录：手机号 + 验证码 → 账号 + 密码
 
-> **状态：方案待批准（2026-11-28）。** 本文件只做分析与方案；数据库字段、代码都还没改。
-> 事项 `admin-login-password`，事件 `story.develop:admin-login-password:20261128-a1`。
+> **状态：已批准并实现（2026-11-28），待检查。** 迁移只对 `story_dev` / `story_test` 执行；
+> 生产库未写、生产迁移随上线流程再确认。
+> 事项 `admin-login-password`，事件 `story.develop:admin-login-password:20261128-a1`，
+> 批准卡 `306`（选了「批准：加两列，按方案做」）。
 >
-> **基线（2026-11-28 实测，`./scripts/gate.sh`）**：服务端类型检查 PASS、后台类型检查 PASS、
-> 后台单测 **63 passed**、服务端单测 **146 passed**（`story-dev-postgres` 本轮已起）。
-> 技能与 AGENTS 里写的「服务端 136 用例」已过时，以 gate 实际输出 146 为准。
-> App 用例未跑：本机没有 Flutter SDK，且本轮不动 `apps/app/**`。
+> **基线（改前实测，`./scripts/gate.sh`）**：服务端类型检查 PASS、后台类型检查 PASS、
+> 后台单测 **63 passed**、服务端单测 **146 passed**（`story-dev-postgres` 已起）。
+> **实现后实测**：后台单测 **66 passed**、服务端单测 **159 passed**，两端类型检查 0 错，
+> `pnpm --filter @story/admin build` 通过。技能与 AGENTS 里写的「服务端 136 用例」已过时，
+> 以 gate 实际输出为准。App 用例未跑：本机没有 Flutter SDK，且本轮不动 `apps/app/**`。
 
 ## 1. 用户目标
 
@@ -163,10 +166,10 @@ C 端 `/api/auth/login` 的 `LoginBody(phone, code)` 保持不动）：
 - 服务端/后台版本号不动（没有语义版本发布需求）。
 - 生产库、`prod-deploy.sh migrate/grants/admin` 不在开发轮执行。
 
-## 4. 风险与待批准
+## 4. 风险与上线注意
 
-**待批准的就是迁移本身**：`app.account` 加 `username` / `password_hash` 两列，并把
-`POST /api/admin/accounts` 的请求体从手机号改成账号+初始密码。批准后按第 5 节顺序做。
+**迁移已于 2026-11-28 获本人批准**（卡 `306`，选项 1）：`app.account` 加 `username` /
+`password_hash` 两列，并把 `POST /api/admin/accounts` 的请求体从手机号改成账号+初始密码。
 
 - **上线顺序风险**：发布后老管理员还没有口令，会进不了后台。缓解：发布窗口里先用
   `set-admin-password.mjs` 给首个管理员设好账号密码，再切流量；旧镜像仍能跑（新列是追加）。
@@ -174,7 +177,7 @@ C 端 `/api/auth/login` 的 `LoginBody(phone, code)` 保持不动）：
   在 plan 里留成后续项；如果要求这一轮就加，需要另开一条。
 - **手机号仍出现在家庭档案页**（只读）。见 3.5 的说明。
 
-## 5. 批准后的执行顺序
+## 5. 执行顺序（已完成）
 
 1. schema + 迁移文件 + 回滚 SQL；`node scripts/migrate.mjs` 对 `story_dev` 执行；
 2. `password.ts` + 单测；登录接口、管理员新增/重置接口 + 服务端用例（先红后绿）；
@@ -185,17 +188,36 @@ C 端 `/api/auth/login` 的 `LoginBody(phone, code)` 保持不动）：
 6. 更新本 plan 的 todo 与实测数字、AGENTS 待办、dev log；
 7. `git commit`（**不 push**），发 `story.check` 交棒。
 
-## 6. Todo
+## 6. 实测结果（2026-11-28）
+
+| 项 | 结果 |
+| --- | --- |
+| `story_dev` 迁移 | `20261128120000_admin_password` 已应用，`migrate.mjs --status` 6/6、无 pending |
+| `story_test` 迁移 | 测试前置脚本按目录自动应用，服务端用例全绿 |
+| 服务端用例 | **159 passed**（改前 146；新增密码哈希 6 条 + 后台登录 5 条 + 管理员账号断言） |
+| 后台用例 | **66 passed**（改前 63；登录页 4 条改写 + 3 条新增） |
+| 类型检查 | 服务端 / 后台均 0 错 |
+| 后台构建 | `pnpm --filter @story/admin build` 通过（vite 2.31s） |
+| dev 登录冒烟 | `admin / dev-admin-password` 200；错密码 401「账号或密码错误」；旧 phone/code body 400 |
+| `set-admin-password.mjs` | 在 dev editor 上改账号+口令再改回，两次都 200；输出不含明文 |
+| App 用例 | 未跑。本轮没有 `apps/app/**` 改动，且本机没有 Flutter SDK；不需要 CI 的 `android.yml` |
+| e2e 冒烟脚本 | 已改 `ADMIN_USERNAME`/`ADMIN_PASSWORD`；后台登录路径用上面的 curl 核过，整条 e2e 未跑（要 TTS/网络） |
+
+**门禁 SKIP 说明**：`gate.sh` 的 App 项默认 SKIP，原因是本机没有 Flutter SDK；
+本轮不动 App，所以不需要它。服务端项没有 SKIP —— `story-dev-postgres` 已起，
+159 条全部真实跑过。
+
+## 7. Todo
 
 - [x] 分清新活/退回、逐处核实现状、量基线（63 / 146）
 - [x] 方案、迁移 SQL、回滚、测试计划
-- [ ] **等批准：`app.account` 加两列 + 管理员创建接口改账号密码**
-- [ ] schema / 迁移 / 回滚 SQL，dev 库执行
-- [ ] 密码哈希工具 + 单测
-- [ ] 后台登录接口改造 + 服务端用例
-- [ ] 管理员新增/重置接口 + 用例
-- [ ] 前端登录页/会话/客户端/系统页 + 后台用例
-- [ ] dev 种子 / set-admin-password / e2e 冒烟
-- [ ] gate + admin build + 界面回归 ≥3 次
-- [ ] 文档同步（AGENTS 待办、dev log、本 plan 数字）
+- [x] 等批准：`app.account` 加两列 + 管理员创建接口改账号密码（卡 306，选 1）
+- [x] schema / 迁移 / 回滚 SQL，dev 库执行
+- [x] 密码哈希工具 + 单测（6 条）
+- [x] 后台登录接口改造 + 服务端用例
+- [x] 管理员新增/重置接口 + 用例
+- [x] 前端登录页/会话/客户端/系统页 + 后台用例
+- [x] dev 种子 / set-admin-password / e2e 冒烟脚本
+- [x] gate + admin build + 界面回归 ≥3 次
+- [x] 文档同步（AGENTS 待办、dev log、本 plan 数字）
 - [ ] commit（不 push）+ `story.check` 交棒

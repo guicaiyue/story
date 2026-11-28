@@ -408,7 +408,7 @@ docker run -d --name smoke-e2e --network dsh-dev_default -e NODE_ENV=production 
   -e DATABASE_URL=postgresql://storydev:***@story-dev-postgres:5432/story_e2e_seed \
   -e JWT_SECRET=... -e FIXED_SMS_CODE=87654321 story-server:m4
 # 冒烟（脚本已入库：apps/server/scripts/e2e-smoke.mjs）
-BASE=http://smoke-e2e:3000 ADMIN_CODE=87654321 node apps/server/scripts/e2e-smoke.mjs
+BASE=http://smoke-e2e:3000 ADMIN_USERNAME=admin ADMIN_PASSWORD=dev-admin-password node apps/server/scripts/e2e-smoke.mjs
 ```
 
 | # | 步骤 | 结果 |
@@ -417,7 +417,7 @@ BASE=http://smoke-e2e:3000 ADMIN_CODE=87654321 node apps/server/scripts/e2e-smok
 | 6–8 | 播放上报（event=start）→ 写阅读进度 → 读回进度 | ✅ 200 |
 | 9–11 | 收藏 → 收藏列表 → 我的信息 | ✅ 200 |
 | 12 | **音频**（`/api/stories/:id/audio`，真实内容 + TTS） | ✅ 200 |
-| 13–16 | 后台固定码登录 → 仪表盘 → 故事列表 → 分析概览 | ✅ 200 |
+| 13–16 | 后台账号密码登录 → 仪表盘 → 故事列表 → 分析概览 | ✅ 200 |
 
 **不只看状态码，还查了落库**（这才是「真能用」）：
 

@@ -44,7 +44,7 @@ export function errJson(code: string, message: string, status = 400) {
 /** Seeds a fake admin session so authenticated pages render. */
 export function seedSession(role = 'admin') {
   localStorage.setItem('story_admin_token', 'test-token');
-  localStorage.setItem('story_admin_account', JSON.stringify({ accountId: 'acc_1', role, phone: '13900000001', nickname: '测试管理员' }));
+  localStorage.setItem('story_admin_account', JSON.stringify({ accountId: 'acc_1', role, username: 'admin-test', nickname: '测试管理员' }));
 }
 
 /**

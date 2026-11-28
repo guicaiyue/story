@@ -33,7 +33,7 @@
 **它是开发期门禁，与 NAS 无关**——`story-preflight.timer` 从来没被创建过，别以为它在定时跑。
 
 端到端冒烟本体是 `apps/server/scripts/e2e-smoke.mjs`，也可以单独对着任意服务跑：
-`BASE=http://host:3000 ADMIN_CODE=123456 node apps/server/scripts/e2e-smoke.mjs`。
+`BASE=http://host:3000 ADMIN_USERNAME=admin ADMIN_PASSWORD=dev-admin-password node apps/server/scripts/e2e-smoke.mjs`。
 
 ## 产品与决策
 
@@ -76,7 +76,7 @@
 ## 目录约定
 
 ```
-apps/server           服务端（Fastify + Prisma，136 测试）
+apps/server           服务端（Fastify + Prisma，159 测试）
 apps/admin            运营后台（React + Vite + nginx，63 测试）
 apps/app              Flutter 客户端（58 测试，2026-11-14 从 `aacce1b` 恢复）
 apps/server/scripts   迁移执行器、开发种子、端到端冒烟

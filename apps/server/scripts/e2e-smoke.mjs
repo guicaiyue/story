@@ -9,14 +9,14 @@
  *   docker run -d --name smoke-e2e --network dsh-dev_default \
  *     -e NODE_ENV=production -e DATABASE_URL=...story_e2e_seed \
  *     -e JWT_SECRET=... -e FIXED_SMS_CODE=87654321 story-server:m4
- *   BASE=http://smoke-e2e:3000 ADMIN_PHONE=13900000001 ADMIN_CODE=87654321 \
+ *   BASE=http://smoke-e2e:3000 ADMIN_USERNAME=admin ADMIN_PASSWORD=dev-admin-password \
  *     node apps/server/scripts/e2e-smoke.mjs
  *
  * 退出码 0 = 全通；任何一步失败打印状态与响应片段并以 1 退出。
  */
 const BASE = process.env.BASE ?? 'http://127.0.0.1:3000';
-const ADMIN_PHONE = process.env.ADMIN_PHONE ?? '13900000001';
-const ADMIN_CODE = process.env.ADMIN_CODE ?? '';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? '';
 
 const out = [];
 let token = '';
@@ -68,10 +68,10 @@ await call('收藏列表', '/api/favorites');
 await call('我的信息', '/api/me');
 await call('音频（TTS 或缓存）', `/api/stories/${id}/audio`);
 
-if (ADMIN_CODE) {
+if (ADMIN_PASSWORD) {
   const login = await call('后台登录', '/api/admin/auth/login', {
     method: 'POST',
-    ...j({ phone: ADMIN_PHONE, code: ADMIN_CODE }),
+    ...j({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
   });
   const adminToken = login.body?.data?.token ?? '';
   const auth = adminToken ? { authorization: `Bearer ${adminToken}` } : {};
@@ -79,7 +79,7 @@ if (ADMIN_CODE) {
   await call('后台故事列表', '/api/admin/stories?pageSize=5', { headers: auth });
   await call('后台分析概览', '/api/admin/analytics/overview', { headers: auth });
 } else {
-  out.push({ name: '后台（跳过：未给 ADMIN_CODE）', status: 0, ok: true, sample: '' });
+  out.push({ name: '后台（跳过：未给 ADMIN_PASSWORD）', status: 0, ok: true, sample: '' });
 }
 
 for (const r of out) {

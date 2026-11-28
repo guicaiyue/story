@@ -4,7 +4,7 @@ import { api, clearSession, getAccount, getToken, setSession, type AdminAccount 
 type AuthState = {
   account: AdminAccount | null;
   isAuthed: boolean;
-  login: (phone: string, code: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -19,9 +19,9 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<AdminAccount | null>(() => (getToken() ? getAccount() : null));
 
-  const login = useCallback(async (phone: string, code: string) => {
-    const res = await api.adminLogin({ phone, code });
-    const next: AdminAccount = { accountId: res.accountId, role: res.role, phone };
+  const login = useCallback(async (username: string, password: string) => {
+    const res = await api.adminLogin({ username, password });
+    const next: AdminAccount = { accountId: res.accountId, role: res.role, username: res.username || username };
     setSession(res.token, next);
     setAccount(next);
   }, []);

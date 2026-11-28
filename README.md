@@ -87,7 +87,7 @@
 ### 改完代码检查
 
 ```bash
-./scripts/gate.sh                 # 本机能跑的那一半：两端类型检查 + 后台 63 用例（开发库在时顺带服务端 136）
+./scripts/gate.sh                 # 本机能跑的那一半：两端类型检查 + 后台 66 用例（开发库在时顺带服务端全量 159）
 docker start story-dev-postgres   # 首次或库停了才要
 ./scripts/preflight.sh            # 完整门禁，必须在开发容器里跑
 ```
@@ -96,7 +96,7 @@ docker start story-dev-postgres   # 首次或库停了才要
 脚本自己检测 `/.dockerenv`，不在容器里就早退并提示。
 **它是开发期门禁，与 NAS 生产环境无关**——`story-preflight.timer` 从来没被创建过。
 
-它检查迁移账本 + 服务端测试（136）+ 后台测试（63）；`--e2e` 再加 16 步端到端冒烟
+它检查迁移账本 + 服务端全量测试（159）+ 后台测试（66）；`--e2e` 再加 16 步端到端冒烟
 （临时容器 + 副本库）。注意 `story_e2e_seed` 这个种子库现在不存在，`--e2e` 会 SKIP，
 要跑就用 `E2E_DB=<带 admin 账号的库名>` 指定。
 

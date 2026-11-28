@@ -116,8 +116,8 @@ export function AppLayout() {
           </div>
           <div className="topbar-right">
             <Badge status="processing" text="TTS 队列 · 实时合成" />
-            <Tooltip title={account?.phone ?? ''}>
-              <Avatar style={{ background: tokens.brand }}>{(account?.nickname ?? 'A').slice(0, 1)}</Avatar>
+            <Tooltip title={account?.username ?? ''}>
+              <Avatar style={{ background: tokens.brand }}>{(account?.nickname ?? account?.username ?? 'A').slice(0, 1)}</Avatar>
             </Tooltip>
             <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>
               {account?.role === 'admin' ? '超级管理员' : '编辑'}

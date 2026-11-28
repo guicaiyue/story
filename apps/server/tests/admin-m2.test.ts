@@ -12,10 +12,13 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
+import { hashPassword } from '../src/services/password.js';
 import { migrateTestDb, seedTestDb, testPrisma } from './helpers/test-db.js';
 
 const db = testPrisma();
+const TEST_PASSWORD = 'test-admin-password';
 let app: FastifyInstance;
+let passwordHash: string;
 let adminToken: string;
 let editorToken: string;
 let adminId: string;
@@ -39,14 +42,27 @@ afterAll(async () => {
 beforeEach(async () => {
   await seedTestDb(db);
   await db.account.deleteMany({});
-  const admin = await db.account.create({ data: { phone: '13900000001', nickname: '管理员', role: 'admin' } });
-  const editor = await db.account.create({ data: { phone: '13900000002', nickname: '编辑', role: 'editor' } });
+  passwordHash = await hashPassword(TEST_PASSWORD);
+  const admin = await db.account.create({
+    data: { username: 'admin-test', nickname: '管理员', role: 'admin', passwordHash },
+  });
+  const editor = await db.account.create({
+    data: { username: 'editor-test', nickname: '编辑', role: 'editor', passwordHash },
+  });
   adminId = admin.id;
   editorId = editor.id;
 
-  const a = await app.inject({ method: 'POST', url: '/api/admin/auth/login', payload: { phone: '13900000001', code: '123456' } });
+  const a = await app.inject({
+    method: 'POST',
+    url: '/api/admin/auth/login',
+    payload: { username: 'admin-test', password: TEST_PASSWORD },
+  });
   adminToken = a.json().data.token;
-  const e = await app.inject({ method: 'POST', url: '/api/admin/auth/login', payload: { phone: '13900000002', code: '123456' } });
+  const e = await app.inject({
+    method: 'POST',
+    url: '/api/admin/auth/login',
+    payload: { username: 'editor-test', password: TEST_PASSWORD },
+  });
   editorToken = e.json().data.token;
 });
 
@@ -432,41 +448,88 @@ describe('/api/admin/accounts（M2.1 项目 4）', () => {
   it('lists admin accounts including status', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/admin/accounts', headers: asAdmin() });
     expect(res.statusCode).toBe(200);
-    const items = res.json().data.items as Array<{ role: string; status: string }>;
+    const items = res.json().data.items as Array<{ role: string; status: string; username: string | null }>;
     expect(items.length).toBe(2);
     expect(items.every((i) => i.status === 'active')).toBe(true);
+    expect(items.map((i) => i.username).sort()).toEqual(['admin-test', 'editor-test']);
   });
 
-  it('creates an editor account', async () => {
+  it('creates an editor account with a hashed password', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/accounts',
       headers: asAdmin(),
-      payload: { phone: '13900000003', nickname: '新编辑', role: 'editor' },
+      payload: { username: 'new-editor', password: TEST_PASSWORD, nickname: '新编辑', role: 'editor' },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.role).toBe('editor');
-    expect(await db.account.findUnique({ where: { phone: '13900000003' } })).toBeTruthy();
+    expect(res.json().data.username).toBe('new-editor');
+    const created = await db.account.findUnique({ where: { username: 'new-editor' } });
+    expect(created).toBeTruthy();
+    expect(created!.passwordHash).not.toBe(TEST_PASSWORD);
+    expect(created!.passwordHash?.startsWith('scrypt$')).toBe(true);
   });
 
-  it('rejects a duplicate phone with 409', async () => {
+  it('rejects a duplicate username with 409', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/admin/accounts',
       headers: asAdmin(),
-      payload: { phone: '13900000001', role: 'editor' },
+      payload: { username: 'admin-test', password: TEST_PASSWORD, role: 'editor' },
     });
     expect(res.statusCode).toBe(409);
+    expect(res.json().error.message).toBe('该账号名已存在');
   });
 
-  it('rejects a malformed phone', async () => {
+  it('renames an account and resets its password without auditing the secret', async () => {
     const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/admin/accounts/${editorId}`,
+      headers: asAdmin(),
+      payload: { username: 'editor-renamed', password: 'new-editor-password' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.username).toBe('editor-renamed');
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { username: 'editor-renamed', password: 'new-editor-password' },
+    });
+    expect(login.statusCode).toBe(200);
+
+    const audit = await db.auditLog.findFirst({ where: { action: 'account.update', target: editorId } });
+    expect(audit).toBeTruthy();
+    expect(JSON.stringify(audit?.detail)).not.toContain('new-editor-password');
+  });
+
+  it('rejects renaming to a username already taken', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/admin/accounts/${editorId}`,
+      headers: asAdmin(),
+      payload: { username: 'admin-test' },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.message).toBe('该账号名已存在');
+  });
+
+  it('rejects a malformed username or short password', async () => {
+    const badName = await app.inject({
       method: 'POST',
       url: '/api/admin/accounts',
       headers: asAdmin(),
-      payload: { phone: '12345', role: 'editor' },
+      payload: { username: 'ab', password: TEST_PASSWORD, role: 'editor' },
     });
-    expect(res.statusCode).toBe(400);
+    expect(badName.statusCode).toBe(400);
+
+    const shortPassword = await app.inject({
+      method: 'POST',
+      url: '/api/admin/accounts',
+      headers: asAdmin(),
+      payload: { username: 'new-editor-2', password: 'short', role: 'editor' },
+    });
+    expect(shortPassword.statusCode).toBe(400);
   });
 
   it('editor cannot create an admin account', async () => {
@@ -474,7 +537,7 @@ describe('/api/admin/accounts（M2.1 项目 4）', () => {
       method: 'POST',
       url: '/api/admin/accounts',
       headers: asEditor(),
-      payload: { phone: '13900000004', role: 'editor' },
+      payload: { username: 'forbidden-admin', password: TEST_PASSWORD, role: 'editor' },
     });
     expect(res.statusCode).toBe(403);
   });
@@ -493,9 +556,10 @@ describe('/api/admin/accounts（M2.1 项目 4）', () => {
     const login = await app.inject({
       method: 'POST',
       url: '/api/admin/auth/login',
-      payload: { phone: '13900000002', code: '123456' },
+      payload: { username: 'editor-test', password: TEST_PASSWORD },
     });
     expect(login.statusCode).toBe(403);
+    expect(login.json().error.message).toBe('该账号已被停用');
   });
 
   it('an already-issued token stops working once the account is disabled', async () => {
@@ -561,8 +625,14 @@ describe('/api/admin/accounts（M2.1 项目 4）', () => {
   it('refuses to remove the last usable admin', async () => {
     // 另建一个 admin 来执行操作，这样「目标」不是自己 —— 走的是「最后一个
     // admin」这条保护，而不是「不能操作自己」那条。
-    const other = await db.account.create({ data: { phone: '13900000009', nickname: '另一个管理员', role: 'admin' } });
-    const login = await app.inject({ method: 'POST', url: '/api/admin/auth/login', payload: { phone: '13900000009', code: '123456' } });
+    const other = await db.account.create({
+      data: { username: 'second-admin', nickname: '另一个管理员', role: 'admin', passwordHash },
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/admin/auth/login',
+      payload: { username: 'second-admin', password: TEST_PASSWORD },
+    });
     const otherToken = login.json().data.token;
 
     // 先把原 admin 降级，于是 other 成为唯一 admin。
@@ -604,7 +674,7 @@ describe('/api/admin/accounts（M2.1 项目 4）', () => {
       method: 'POST',
       url: '/api/admin/accounts',
       headers: asAdmin(),
-      payload: { phone: '13900000008', role: 'editor' },
+      payload: { username: 'audit-editor', password: TEST_PASSWORD, role: 'editor' },
     });
     await app.inject({ method: 'PATCH', url: `/api/admin/accounts/${editorId}`, headers: asAdmin(), payload: { status: 'disabled' } });
     await app.inject({ method: 'PATCH', url: `/api/admin/accounts/${editorId}`, headers: asAdmin(), payload: { role: 'editor' } });

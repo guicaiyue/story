@@ -15,6 +15,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { loadDotEnv } from '../src/load-env.mjs';
+import { hashPassword } from './hash-password.mjs';
 
 loadDotEnv();
 
@@ -31,6 +32,10 @@ if (/\/story(\?|$)/.test(url)) {
 
 const db = new PrismaClient({ datasources: { db: { url } } });
 
+/** dev 专用初始口令；可用环境变量覆盖。生产不要用这两个值。 */
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'dev-admin-password';
+const EDITOR_PASSWORD = process.env.SEED_EDITOR_PASSWORD ?? 'dev-editor-password';
+
 const rid = (p) => `${p}_${Math.random().toString(36).slice(2, 10)}`;
 
 async function main() {
@@ -44,9 +49,13 @@ async function main() {
   await db.$executeRawUnsafe("UPDATE public.story_main SET status='published', featured=false, cover_url=NULL, audio_url=NULL");
 
   // --- accounts ------------------------------------------------------------
+  const adminPasswordHash = await hashPassword(ADMIN_PASSWORD);
+  const editorPasswordHash = await hashPassword(EDITOR_PASSWORD);
   const admin = await db.account.create({
     data: {
       phone: '13900000001',
+      username: 'admin',
+      passwordHash: adminPasswordHash,
       nickname: '林知远',
       role: 'admin',
       family: { create: { name: '林家' } },
@@ -56,6 +65,8 @@ async function main() {
   const editor = await db.account.create({
     data: {
       phone: '13900000002',
+      username: 'editor',
+      passwordHash: editorPasswordHash,
       nickname: '编辑小周',
       role: 'editor',
       family: { create: { name: '周家' } },
@@ -165,8 +176,8 @@ async function main() {
   console.log(`  draft              ${draftIds.length}`);
   console.log(`  featured           ${featuredIds.length}`);
   console.log(`  play events        ${events.length}`);
-  console.log(`  admin login        13900000001 (verify code from FIXED_SMS_CODE)`);
-  console.log(`  editor login       13900000002`);
+  console.log(`  admin login        admin / ${ADMIN_PASSWORD}`);
+  console.log(`  editor login       editor / ${EDITOR_PASSWORD}`);
 }
 
 main()

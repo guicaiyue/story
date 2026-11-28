@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
+import { hashPassword } from '../src/services/password.js';
 import { migrateTestDb, seedTestDb, testPrisma } from './helpers/test-db.js';
 
 const db = testPrisma();
+const TEST_PASSWORD = 'test-admin-password';
 let app: FastifyInstance;
 let adminToken: string;
 let editorToken: string;
@@ -15,12 +17,21 @@ beforeAll(async () => {
   await app.ready();
 
   // admin + editor accounts, since review is admin-only.
-  await db.account.create({ data: { phone: '13900000001', nickname: '管理员', role: 'admin' } });
-  await db.account.create({ data: { phone: '13900000002', nickname: '编辑', role: 'editor' } });
+  const passwordHash = await hashPassword(TEST_PASSWORD);
+  await db.account.create({ data: { username: 'admin-test', nickname: '管理员', role: 'admin', passwordHash } });
+  await db.account.create({ data: { username: 'editor-test', nickname: '编辑', role: 'editor', passwordHash } });
 
-  const admin = await app.inject({ method: 'POST', url: '/api/admin/auth/login', payload: { phone: '13900000001', code: '123456' } });
+  const admin = await app.inject({
+    method: 'POST',
+    url: '/api/admin/auth/login',
+    payload: { username: 'admin-test', password: TEST_PASSWORD },
+  });
   adminToken = admin.json().data.token;
-  const editor = await app.inject({ method: 'POST', url: '/api/admin/auth/login', payload: { phone: '13900000002', code: '123456' } });
+  const editor = await app.inject({
+    method: 'POST',
+    url: '/api/admin/auth/login',
+    payload: { username: 'editor-test', password: TEST_PASSWORD },
+  });
   editorToken = editor.json().data.token;
 });
 

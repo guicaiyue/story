@@ -44,8 +44,8 @@ CI 与本地不漂移）→ 按 versionName 建 GitHub Release。签名材料见
 ## 目录与约定
 
 ```
-apps/server      服务端（136 测试）
-apps/admin       运营后台（63 测试，镜像内 nginx）
+apps/server      服务端（159 测试）
+apps/admin       运营后台（66 测试，镜像内 nginx）
 apps/app         Flutter 客户端（58 测试；签名材料与 APK 不入库，出包走 CI）
 apps/app/tool/build-release-apk.sh  正式签名出包（自检版号/签名/基址）
 apps/server/scripts  迁移执行器、开发种子、端到端冒烟
@@ -87,9 +87,9 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
    **镜像构建只在 CI 发生，不在部署机上构建**；NAS 的 `/vol1/1000/docker/story/`
    只有 `docker-compose.yaml` + `.env`，**没有源码**。
    回滚 = 改 `.env` 的 `STORY_TAG` 回上一个 sha。
-   服务端 136 个测试 CI 跑不了（要 Postgres），真正的门禁是 `./scripts/preflight.sh`。
+   服务端 159 个测试 CI 跑不了（要 Postgres），真正的门禁是 `./scripts/preflight.sh`。
    **预检是开发期门禁，与 NAS 无关**：它连的是开发库 `story-dev-postgres`，脚本自己会
-   检测 `/.dockerenv`，不在容器里就早退。现在跑不起来（本机开发库已停）。
+   检测 `/.dockerenv`，不在容器里就早退。本机开发库默认停着，要跑先 `docker start story-dev-postgres`。
    别信「NAS 上每 6 小时跑一次」——`story-preflight.timer` **从来没被创建过**。
 
 ## 当前状态（2026-11-23）
@@ -107,7 +107,7 @@ docs/product     产品、决策、上线、发布（档案性质，读前看状
   所以同包名重发没有兼容负担。**从 0.1.3 起同一 keystore 可持续升级。**
   keystore 路径易错：Gradle 的 `file(storeFile)` 与脚本的检查都以 `android/app/` 为基准，
   所以文件必须落 `apps/app/android/app/keystore/`，不是 `android/keystore/`。
-- 待办：管理员手机号换真号、APK 真机验收、接真实短信通道。
+- 待办：生产首个管理员用 `set-admin-password.mjs` 设账号密码（迁移前的老账号没有口径，上线窗口里做）、APK 真机验收、C 端接真实短信通道。
 - 已知遗留：本机 `story-dev-postgres` 上只有 `story_dev` / `story_test` 两个库。
   **`story_e2e_seed` 已经不在了**（2026-11-23 实测），所以 `preflight --e2e` 会 SKIP 并提示
   「没有 story_e2e_seed 库」。要跑端到端得先造种子库，或 `E2E_DB=<库名>` 指定一个带 admin 账号的库。
