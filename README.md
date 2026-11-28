@@ -87,8 +87,9 @@
 ### 改完代码检查
 
 ```bash
+./scripts/gate.sh                 # 本机能跑的那一半：两端类型检查 + 后台 63 用例（开发库在时顺带服务端 136）
 docker start story-dev-postgres   # 首次或库停了才要
-./scripts/preflight.sh
+./scripts/preflight.sh            # 完整门禁，必须在开发容器里跑
 ```
 
 `preflight.sh` 要 pnpm + 能解析 `story-dev-postgres`（开发库，不是生产库）。

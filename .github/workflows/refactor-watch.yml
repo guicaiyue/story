@@ -1,0 +1,127 @@
+# 结构信号触发器：算代码结构变了多少，跨档就发一条 story.refactor.signal。
+#
+# 它只是触发器，不做判断。真正的分析、方案、要不要动手，在「小故事铺：重构评估」那一轮里。
+#
+# 移植自 ~/Projects/autoloop-console/.github/workflows/refactor-watch.yml（2026-11-28）。
+# 三个设计点都是那边踩出来的，别自己改回去：
+#   1. 发的是「摘要」不是全表。事件 detail 上限 4000 字符，完整 signal 会顶爆；
+#      下一轮自己在本机跑 scripts/refactor-signal.sh 拿全表更准。
+#   2. 幂等靠 id，不靠本地状态。id 由「基线 + 档位 + 层内违规数 + 热点指纹」拼成，
+#      同一状态每天跑也只记一次。跨档、换热点才是一条新事件。
+#   3. 不用「总行数」。这个仓库 docs / scripts / config 占大头，源码只算
+#      pipeline.conf 里 refactor_source_dirs 那三处。
+#
+# 默认不发：中台还没有「小故事铺：重构评估」这条规则（或还没同步到 NAS）时，
+# 发了只会进 unrouted。规则生效后把仓库变量 REFACTOR_WATCH_ENABLED 设成 true：
+#   gh variable set REFACTOR_WATCH_ENABLED --body true -R guicaiyue/story
+name: refactor-watch
+
+on:
+  schedule:
+    - cron: "0 2 * * *"        # 每天 10:00 CST
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refactor-watch
+  cancel-in-progress: false
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 逐文件的「被改了几次」要读历史，浅克隆算不出来
+          fetch-depth: 0
+
+      - name: 算结构信号
+        run: |
+          bash scripts/refactor-signal.sh > signal.json
+          jq -c '{baseline:.baseline.short, head, byKind:[.byKind[]|{kind,lines}], probes}' signal.json
+
+      - name: 定档位
+        id: lv
+        run: |
+          set -eu
+          # 切掉行尾注释，否则 `# 源码行数档位` 会被当成第 5 个档位传进比较
+          steps=$(sed -n 's/^refactor_steps *= *//p' pipeline.conf | sed 's/#.*//' | tr ',' ' ')
+          src=$(jq '.srcDirLines // 0' signal.json)
+          files=$(jq '.srcDirFiles // 0' signal.json)
+          x=$(jq '[.probes[]|select(.probe=="cross-import")|.violations]|add // 0' signal.json)
+          r=$(jq -r '.baseline.reviewCount // 0' signal.json)
+          level=0
+          for s in $steps; do
+            if [ "$src" -ge "$s" ]; then level=$s; fi
+          done
+          # 热点指纹：档位只看总量，总量常年跨档时 id 就永远不变——哪怕冒出一个新热点也发不出去。
+          # 取净增前 3 个文件，各自按 500 行分桶，串成一个短串。
+          hot=$(jq -r '[.sourceFiles[:3][]|"\(.path|split("/")|last)=\((.net/500)|floor)"]|join(",")' signal.json)
+          hotfp=$(printf '%s' "$hot" | sha256sum | cut -c1-8)
+          echo "src=$src files=$files cross-import=$x review=$r level=$level"
+          echo "hot=$hot hotfp=$hotfp"
+          {
+            echo "level=$level"
+            echo "src=$src"
+            echo "files=$files"
+            echo "x=$x"
+            echo "r=$r"
+            echo "hot=$hot"
+            echo "hotfp=$hotfp"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 拼 payload
+        id: pl
+        run: |
+          set -eu
+          L=${{ steps.lv.outputs.level }}
+          X=${{ steps.lv.outputs.x }}
+          R=${{ steps.lv.outputs.r }}
+          SRC=${{ steps.lv.outputs.src }}
+          FILES=${{ steps.lv.outputs.files }}
+          BASE=$(jq -r .baseline.short signal.json)
+          BASEAT=$(jq -r .baseline.at signal.json)
+          HOTFP=${{ steps.lv.outputs.hotfp }}
+          # 走 --arg 传，别把值拼进 jq 表达式：文件名带引号会截断 bash 的单引号串
+          HOT=${{ steps.lv.outputs.hot }}
+          # 手动触发带时间戳：手动就是要重跑一遍，不该被幂等吞掉。
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            id="story.refactor.signal:${GITHUB_REPOSITORY}:${BASE}-L${L}-x${X}-h${HOTFP}-manual$(date -u +%Y%m%dT%H%M%S)"
+          else
+            id="story.refactor.signal:${GITHUB_REPOSITORY}:${BASE}-L${L}-x${X}-h${HOTFP}"
+          fi
+          jq -n --arg id "$id" --arg repo "$GITHUB_REPOSITORY" --arg sha "$GITHUB_SHA" \
+                --arg base "$BASE" --arg baseat "$BASEAT" --arg hot "$HOT" --arg hotfp "$HOTFP" \
+                --argjson src "$SRC" --argjson files "$FILES" \
+                --argjson x "$X" --argjson l "$L" --argjson r "$R" \
+            '{id:$id, type:"story.refactor.signal", subject:$repo,
+              summary:("结构信号 L\($l)：源码 \($src) 行 / \($files) 文件，基线 \($base)（评估 \($r) 次）"),
+              detail:({repo:$repo, sha:$sha, baselineShort:$base, baselineAt:$baseat,
+                       srcLines:$src, srcFiles:$files, crossImport:$x, level:$l, reviewCount:$r,
+                       hot:$hot, hotFingerprint:$hotfp}|tostring),
+              link:("https://github.com/"+$repo+"/commit/"+$sha)}' > payload.json
+          echo "id=$id；detail 长度 $(jq -r .detail payload.json | wc -c) 字符（上限 4000）"
+          cat payload.json
+
+      - name: 派发
+        if: vars.REFACTOR_WATCH_ENABLED == 'true'
+        env:
+          HOOK: ${{ secrets.AUTOLOOP_HOOK_URL }}
+          KEY: ${{ secrets.AUTOLOOP_SOURCE_KEY }}
+        run: |
+          set -eu
+          # 这个 secret 存的是**基址**（https://autoloop-hook.xirizhi.cn），路径由调用方拼。
+          # 雷池对 curl 默认 UA 直接 403，必须带浏览器 UA。
+          curl -fsS -X POST "$HOOK/v1/events" \
+            -H "Authorization: Bearer $KEY" \
+            -H 'Content-Type: application/json' \
+            -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36' \
+            -d @payload.json
+
+      - name: 开着但没开成功就说清
+        if: vars.REFACTOR_WATCH_ENABLED != 'true'
+        run: echo "::notice::触发器已算出信号，但 REFACTOR_WATCH_ENABLED 未设 true，未发送。规则建好后置 true。"

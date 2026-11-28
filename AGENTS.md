@@ -12,7 +12,10 @@
 ## 怎么跑
 
 ```bash
-# 服务端/后台测试 —— 要 pnpm + 能解析 story-dev-postgres；CI 跑不了（要 Postgres）
+# 本机门禁：两端类型检查 + 后台单测（中台四条规则与 skill 里说的就是这一条）
+./scripts/gate.sh
+
+# 服务端/后台的完整门禁 —— 要 pnpm + 能解析 story-dev-postgres；CI 跑不了（要 Postgres）
 # 先起开发库：docker start story-dev-postgres
 ./scripts/preflight.sh
 
@@ -46,9 +49,21 @@ apps/admin       运营后台（63 测试，镜像内 nginx）
 apps/app         Flutter 客户端（58 测试；签名材料与 APK 不入库，出包走 CI）
 apps/app/tool/build-release-apk.sh  正式签名出包（自检版号/签名/基址）
 apps/server/scripts  迁移执行器、开发种子、端到端冒烟
-scripts/         宿主侧脚本（preflight 预检、prod-deploy 上线一条龙）
+scripts/         宿主侧脚本（gate 本机门禁、preflight 预检、prod-deploy 上线一条龙、refactor-signal 结构信号）
+.dsh/skills      中台四条规则的项目层 skill：story-dev / story-check / story-release / story-refactor
+pipeline.conf    流水线适配（门禁命令、上线通道、重构信号口径），母本在 ~/work/dotfiles/ai/pipeline
 docs/product     产品、决策、上线、发布（档案性质，读前看状态头）
 ```
+
+## 中台流水线（2026-11-28 接）
+
+四条规则：**小故事铺：开发 / 检查 / 发布 / 重构评估**（事件 `story.develop` / `.check` / `.publish` / `.refactor.signal`，
+`cwd` 都是本仓库，skill 在上面那个 `.dsh/skills`）。改流程改 skill，不动规则表。
+
+两条不看到就会做错的事：
+- **上线事件由 CI 的 `deploy` job 自己发**（`story.deploy:<repo>:<sha>`）。发布轮**不要**再发一条：
+  同 id 会被中台吞掉，不同 id 会让 NAS 装两次。
+- **开发轮只 commit，不 push**：推 main 就是发布，那是发布轮的活。
 
 ## 五条硬约束（踩过坑才写下来）
 
