@@ -13,6 +13,13 @@
  *   # 指定某个管理员
  *   node scripts/set-admin-password.mjs --account-id acc_xxx --username editor --password '...'
  *
+ *   # 只读检查：还有没有 admin 没口令（部署链在没配口令变量时用它兜底）
+ *   node scripts/set-admin-password.mjs --confirm-prod --check
+ *
+ *   # 部署链（story.deploy 动作里跑，幂等）：已有口令就跳过
+ *   ADMIN_USERNAME=admin ADMIN_PASSWORD='...' \
+ *     node scripts/set-admin-password.mjs --confirm-prod --only-if-missing
+ *
  *   # 生产：必须显式给迁移连接串 + --confirm-prod（DDL/写入都要批准）
  *   DATABASE_URL="$PROD_MIGRATE_DATABASE_URL" \
  *     node scripts/set-admin-password.mjs --username admin --password '...' --confirm-prod
@@ -38,19 +45,27 @@ const valueOf = (name) => {
 };
 
 const accountId = valueOf('--account-id');
-const username = valueOf('--username');
+// 参数优先，其次环境变量：部署链上（NAS 的 story.deploy 动作）走环境变量，
+// 免得口令出现在 `docker ps` 的命令行参数里。
+const username = valueOf('--username') ?? process.env.ADMIN_USERNAME;
 const password = valueOf('--password') ?? process.env.ADMIN_PASSWORD;
 const confirmProd = args.includes('--confirm-prod');
+// 部署链上的用法：--only-if-missing。
+// 首次上线要补凭证，但人后来改过的口令不能被下一次部署冲掉——已有口令就跳过。
+const onlyIfMissing = args.includes('--only-if-missing');
+// 只读检查：还有没有 admin 没有口令。部署链在没配口令变量时用它兜底——
+// 还有空口令管理员就说明这一版切上去谁都进不了后台，宁可不上。
+const checkOnly = args.includes('--check');
 
-if (!username || !password) {
+if (!checkOnly && (!username || !password)) {
   console.error("用法：node scripts/set-admin-password.mjs --username <账号> --password <口令> [--account-id <id>] [--confirm-prod]");
   process.exit(2);
 }
-if (!/^[A-Za-z0-9._-]{3,32}$/.test(username)) {
+if (!checkOnly && !/^[A-Za-z0-9._-]{3,32}$/.test(username)) {
   console.error('账号需为 3–32 位字母、数字、点、下划线或连字符');
   process.exit(2);
 }
-if (password.length < 8 || password.length > 128) {
+if (!checkOnly && (password.length < 8 || password.length > 128)) {
   console.error('口令需为 8–128 个字符');
   process.exit(2);
 }
@@ -70,17 +85,33 @@ if (/\/story(\?|$)/.test(url) && !confirmProd) {
 const db = new PrismaClient({ datasources: { db: { url } } });
 
 async function main() {
+  if (checkOnly) {
+    const missing = await db.account.count({ where: { role: 'admin', passwordHash: null } });
+    if (missing > 0) {
+      console.error(`还有 ${missing} 个 admin 没有口令：这一版切上去谁都进不了后台`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log('所有 admin 都已有口令');
+    return;
+  }
+
   const account = accountId
-    ? await db.account.findUnique({ where: { id: accountId }, select: { id: true, role: true, username: true } })
+    ? await db.account.findUnique({ where: { id: accountId }, select: { id: true, role: true, username: true, passwordHash: true } })
     : await db.account.findFirst({
         where: { role: 'admin' },
         orderBy: { createdAt: 'asc' },
-        select: { id: true, role: true, username: true },
+        select: { id: true, role: true, username: true, passwordHash: true },
       });
 
   if (!account) {
     console.error(accountId ? `找不到账号 ${accountId}` : '找不到任何 admin 账号');
     process.exitCode = 1;
+    return;
+  }
+
+  if (onlyIfMissing && account.passwordHash) {
+    console.log(`skip ${account.id}: 已经有口令（username=${account.username ?? '—'}），不覆盖`);
     return;
   }
 

@@ -12,3 +12,4 @@
 !apps/server/tsconfig.json
 !apps/server/src
 !apps/server/prisma
+!apps/server/scripts

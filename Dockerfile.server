@@ -178,6 +178,10 @@ COPY apps/server/prisma ./prisma
 # /app/src/load-env.mjs）。所以把编译好的那份复制到 /app/src/ 对齐路径。
 COPY --from=build /app/apps/server/dist/src/load-env.mjs ./src/load-env.mjs
 COPY apps/server/scripts/migrate.mjs apps/server/scripts/split-sql.mjs ./scripts/
+# 首个管理员的账号口令：登录改成账号+密码后，迁移前的老管理员没有口令，
+# 部署链在应用迁移之后跑 `set-admin-password.mjs --only-if-missing` 补上（幂等）。
+# 它们必须进镜像，理由同上一行：NAS 上没有源码。
+COPY apps/server/scripts/set-admin-password.mjs apps/server/scripts/hash-password.mjs ./scripts/
 
 # 音频缓存目录（MP3 落盘，不进 Postgres）。先建好并 chown 给 node：
 # Docker 首次创建**命名卷**时会继承镜像里该目录的属主，所以 node 用户可写。
